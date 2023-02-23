@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "ESP32-S3 DEBUG",
+        "type": "cppdbg",
+        "request": "launch",
+        "MIMode": "gdb",
+        //"miDebuggerPath": "${command:espIdf.getXtensaGdb}",
+        "miDebuggerPath":"F:\\esp\\Espressif\\tools\\xtensa-esp-elf-gdb\\11.2_20220823\\xtensa-esp-elf-gdb\\bin\\xtensa-esp32s3-elf-gdb.exe",
+        "program": "${workspaceFolder}/build/${command:espIdf.getProjectName}.elf",
+        "windows": {
+          "program": "${workspaceFolder}\\build\\${command:espIdf.getProjectName}.elf",
+        },
+        "cwd": "${workspaceFolder}",
+        "environment": [{ "name": "PATH", "value": "${config:idf.customExtraPaths}" }],
+        "setupCommands": [
+          { "text": "target remote :3333" },
+          { "text": "set remote hardware-watchpoint-limit 2"},
+          { "text": "mon reset halt" },
+          { "text": "thb app_main" },
+          { "text": "flushregs" }
+        ],
+        "externalConsole": false,
+        "logging": {
+          "engineLogging": true
+        },
+        // "F:\\esp\\Espressif\\tools\\xtensa-esp-elf-gdb\\11.2_20220823\\xtensa-esp-elf-gdb\\bin\\xtensa-esp32s3-elf-gdb.exe\r\n",
+      }
+    ]
+  }
