@@ -1,22 +1,11 @@
 #ifndef _DEVICE_H
 #define _DEVICE_H
+#include "esp_vfs.h"
+#include "esp_vfs_dev.h"
 #include "esp_err.h"
 #include "esp_types.h"
 #include <stdio.h>
-
-// typedef struct 
-// {
-//     esp_err_t(*init_dev)(void);
-//     esp_err_t(*read_dev)(void*buf,size_t size);
-//     esp_err_t(*write_dev)(void*buf,size_t size);
-//     esp_err_t(*ctrl_dev)(uint8_t cmd,uint32_t arg);
-// }device_obj_t;
-
-typedef struct 
-{
-    int32_t humi;
-    int32_t temp;
-}aht10_data_t;
+#include <fcntl.h>
 
 typedef struct 
 {
@@ -24,7 +13,7 @@ typedef struct
     int buttonHandle;
     int aht10Handle;
 }device_t;
-
+#define STORAGE_PATH "/spiffs"
 void device_init(void);
 device_t* dev_get(void);
 #define DEV (dev_get())

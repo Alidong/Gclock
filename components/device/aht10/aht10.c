@@ -1,3 +1,4 @@
+#include "aht10.h"
 #include "board.h"
 #include "../device.h"
 #include "pal_driver.h"

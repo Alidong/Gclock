@@ -5,4 +5,25 @@
     "idf.openOcdConfigs": [
         "board/esp32s3-builtin.cfg"
     ],
+    "files.associations": {
+        "istream": "c",
+        "*.tcc": "c",
+        "board.h": "c",
+        "device.h": "c",
+        "esp_err.h": "c",
+        "esp_types.h": "c",
+        "pal_driver.h": "c",
+        "esp_vfs.h": "c",
+        "esp_vfs_dev.h": "c",
+        "lv_examples.h": "c",
+        "button.h": "c",
+        "gpio.h": "c",
+        "algorithm": "c",
+        "bitset": "c",
+        "iterator": "c",
+        "xhash": "c",
+        "xtree": "c",
+        "xutility": "c",
+        "dev_lcd.h": "c"
+    },
 }

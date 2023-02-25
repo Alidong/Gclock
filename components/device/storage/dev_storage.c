@@ -3,78 +3,63 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
-#include "esp_vfs.h"
-#include "esp_vfs_dev.h"
-#include "esp_partition.h"
-#include "esp_vfs_fat.h"
-#include "nvs_flash.h"
-#include "wear_levelling.h"
+#include <string.h>
+#include <sys/unistd.h>
+#include <sys/stat.h>
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_spiffs.h"
+// #define CONFIG_SPIFFS_CHECK_ON_START
 static const char *TAG = "dev storage";
-static TimerHandle_t timer;
- static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
-static void sd_timer(TimerHandle_t xTimer)
+static void spiffs_init(void)
 {
-    if(!DEV->isSdOk)
-    {
-        ESP_LOGI(TAG,"try mount sd!");
-        if(sd_mount()==ESP_OK)
-        {
-            ESP_LOGI(TAG,"mount sd ok!");
-            DEV->isSdOk=true;
+    ESP_LOGI(TAG, "Initializing SPIFFS");
+
+    esp_vfs_spiffs_conf_t conf = {
+      .base_path = STORAGE_PATH,
+      .partition_label = NULL,
+      .max_files = 5,
+      .format_if_mount_failed = true
+    };
+
+    // Use settings defined above to initialize and mount SPIFFS filesystem.
+    // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount or format filesystem");
+        } else if (ret == ESP_ERR_NOT_FOUND) {
+            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
         }
+        return;
     }
-    else
-    {
-        if (!sd_detect())
-        {
-            ESP_LOGI(TAG,"unmount sd!");
-            DEV->isSdOk=false;
-            sd_unmount();
-        }
+
+#ifdef CONFIG_SPIFFS_CHECK_ON_START
+    ESP_LOGI(TAG, "Performing SPIFFS_check().");
+    ret = esp_spiffs_check(conf.partition_label);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "SPIFFS_check() failed (%s)", esp_err_to_name(ret));
+        return;
+    } else {
+        ESP_LOGI(TAG, "SPIFFS_check() successful");
+    }
+#endif
+    size_t total = 0, used = 0;
+    ret = esp_spiffs_info(conf.partition_label, &total, &used);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s). Formatting...", esp_err_to_name(ret));
+        esp_spiffs_format(conf.partition_label);
+        return;
+    } else {
+        ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
     }
 }
+
 esp_err_t dev_storage_init(void) 
 {
-    // Initialize NVS 
-    esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        // NVS partition was truncated and needs to be erased
-        // Retry nvs_flash_init
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        err = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK( err );
-    //mount sd
-    timer=xTimerCreate("sd_mount",pdMS_TO_TICKS(2000),true,(void*)1,sd_timer);
-    err = sd_init();
-    if (err==ESP_OK)
-    {
-        DEV->isSdOk=true;
-    }
-    else
-    {
-        DEV->isSdOk=false;
-    }
-    xTimerStart(timer,pdMS_TO_TICKS(1000));
-
-    //mount internal flash file system
-    ESP_LOGI(TAG, "Mounting FAT filesystem");
-    const esp_vfs_fat_mount_config_t mount_config = {
-            .max_files = 4,
-            .format_if_mount_failed = true,
-            .allocation_unit_size = CONFIG_WL_SECTOR_SIZE
-    };
-    err = esp_vfs_fat_spiflash_mount(FLASH_MOUNT_PATH, "storage", &mount_config, &s_wl_handle);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to mount FATFS (%s)", esp_err_to_name(err));
-        return err;
-    }
-     ESP_LOGI(TAG, "FAT filesystem mounted!");
-    // Print FAT FS size information
-    // uint64_t bytes_total, bytes_free;
-    // esp_vfs_fat_info(FLASH_MOUNT_PATH, &bytes_total, &bytes_free);
-    // ESP_LOGI(TAG, "FAT FS: %lld kB total, %lld kB free", bytes_total / 1024, bytes_free / 1024);
-    return err;
+  spiffs_init();
+  return ESP_OK;
 }

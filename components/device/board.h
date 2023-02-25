@@ -17,12 +17,7 @@
 /* Automatically update local time */
 #define GET_TIMEZONE_API             "https://ipapi.co/timezone/"
 
-/* LCD CONFIG */
-#define LCD_PIXEL_CLOCK_HZ   (20 * 1000 * 1000)
-// The pixel number in horizontal and vertical
-#define LCD_H_RES            170
-#define LCD_V_RES            320
-#define LCD_PIX_SIZE            (LCD_H_RES * LCD_V_RES)
+
 #define EXAMPLE_PSRAM_DATA_ALIGNMENT 64
 
 /*ESP32S3*/

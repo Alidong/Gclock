@@ -10,13 +10,10 @@
 #include "lvgl.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "device/lcd/lcd.h"
-#include "device/board.h"
+#include "device/device.h"
+#include "device/button/button.h"
+#include "device/lcd/dev_lcd.h"
 #include <stdio.h>
-#include <sys/fcntl.h>
-#include <sys/errno.h>
-#include <sys/unistd.h>
-#include <sys/select.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_timer.h"
@@ -33,7 +30,15 @@ static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t 
     int offsety2 = area->y2;
     // pass the draw buffer to the driver
     //esp_lcd_panel_draw_bitmap(lcd_panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
-    lcd_flush(offsetx1, offsety1, offsetx2, offsety2, color_map);
+    dev_lcd_flush_t lcd={
+        .xStart=offsetx1,
+        .xEnd=offsetx2,
+        .yStart=offsety1,
+        .yEnd=offsety2,
+        .buf=color_map
+    };
+    write(DEV->lcdHandle,&lcd,sizeof(dev_lcd_flush_t));
+    //lcd_flush(offsetx1, offsety1, offsetx2, offsety2, color_map);
     lv_disp_flush_ready(drv);
 }
 void lv_disp_init(void)
@@ -41,6 +46,10 @@ void lv_disp_init(void)
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
     void *buf1 = NULL;
+    dev_lcd_pix_t lcd;
+    read(DEV->lcdHandle,&lcd,sizeof(dev_lcd_pix_t));
+    uint16_t LCD_H_RES=lcd.width;
+    uint16_t LCD_V_RES=lcd.height;
     ESP_LOGI(TAG, "Allocate separate LVGL draw buffers from PSRAM");
     buf1 = malloc(LCD_H_RES * LCD_V_RES * sizeof(lv_color_t));
     assert(buf1);
@@ -79,14 +88,20 @@ static void button_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 {
 
     static uint8_t last_btn = 0;
-
     /*Get the pressed button's ID*/
-    uint8_t btn_act=0xFF;
-    read(DEV->buttonHandle,&btn_act,sizeof(btn_act));
-    if(btn_act != 0) {
+    key_event_t keyEvent;
+    read(DEV->buttonHandle,&keyEvent,sizeof(key_event_t));
+    if(keyEvent.key1Event || keyEvent.key2Event) {
         data->state = LV_INDEV_STATE_PR;
-        last_btn = btn_act&0x01? 0:1;
-        printf("lv:btn_act=%d\r\n",last_btn);
+        if (keyEvent.key1Event)
+        {
+            last_btn=0;
+        }
+        else if(keyEvent.key2Event)
+        {
+            last_btn=1;
+        }
+        ESP_LOGI(TAG,"lv:btn_act=%d\r\n",last_btn);
     }
     else {
         data->state = LV_INDEV_STATE_REL;

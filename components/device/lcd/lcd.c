@@ -157,6 +157,7 @@ static void ledc_init(void)
         .hpoint         = 0
     };
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+    ledc_fade_func_install(0);
 }
 void lcd_set_light(uint8_t lighteness)
 {
@@ -165,11 +166,9 @@ void lcd_set_light(uint8_t lighteness)
   {
     lighteness=100;
   }
-  uint16_t ledc_duty=lighteness*LEDC_DUTY_MAX/100-1;
-  // Set duty
-  ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, ledc_duty));
-  // Update duty to apply the new value
-  ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+  uint16_t ledcDutySet=lighteness*LEDC_DUTY_MAX/100-1;
+  ledc_set_fade_with_time(LEDC_MODE,LEDC_CHANNEL,ledcDutySet,500);
+  ledc_fade_start(LEDC_MODE,LEDC_CHANNEL,LEDC_FADE_NO_WAIT);
 }
 void lcd_flush(int x_start,int y_start,int x_end,int y_end,const void* buf)
 {
