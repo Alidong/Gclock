@@ -89,15 +89,15 @@ static void button_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 
     static uint8_t last_btn = 0;
     /*Get the pressed button's ID*/
-    key_event_t keyEvent;
-    read(DEV->buttonHandle,&keyEvent,sizeof(key_event_t));
-    if(keyEvent.key1Event || keyEvent.key2Event) {
+    key_event_t key;
+    read(DEV->buttonHandle,&key,sizeof(key_event_t));
+    if(key.keyPressd) {
         data->state = LV_INDEV_STATE_PR;
-        if (keyEvent.key1Event)
+        if (key.keyEvent[KEY_1])
         {
-            last_btn=0;
+            last_btn=0;       
         }
-        else if(keyEvent.key2Event)
+        else if(key.keyEvent[KEY_2])
         {
             last_btn=1;
         }

@@ -24,6 +24,11 @@
         "xhash": "c",
         "xtree": "c",
         "xutility": "c",
-        "dev_lcd.h": "c"
+        "dev_lcd.h": "c",
+        "xlocale": "c",
+        "functional": "c",
+        "adc_continuous.h": "c",
+        "power.h": "c",
+        "aht10.h": "c"
     },
 }

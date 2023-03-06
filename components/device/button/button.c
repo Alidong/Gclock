@@ -3,17 +3,19 @@
 #include "../pal_driver.h"
 #include "driver/gpio.h"
 #include "../device.h"
+#include "../power/power.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
 #include "freertos/queue.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#define BUTTON_LONG_PRESS_TICK 30
-#define BUTTON_SCAN_PERIOD pdMS_TO_TICKS(20)
+#define BUTTON_LONG_PRESS_TICK pdMS_TO_TICKS(500)
+#define BUTTON_SCAN_PERIOD pdMS_TO_TICKS(10)
 typedef struct 
 {
   TimerHandle_t timer;
   QueueHandle_t queueEvent;
+  uint8_t keyIOIndex[KEY_NUM_MAX];
 }button_ctrl_t;
 button_ctrl_t st_buttonCtrl;
 static uint8_t button_event_parse(uint16_t pressTick)
@@ -37,42 +39,38 @@ static void button_scan_timer( TimerHandle_t xTimer )
 {
   static uint16_t pressTick[KEY_NUM_MAX];
   QueueHandle_t queueHandle=st_buttonCtrl.queueEvent;
-  key_event_t keyEvent=
+  key_event_t key=
   {
-    .key1Event=0,
-    .key2Event=0,
-    .keyRemain=0,
+    .keyPressd=false,
   };
   uint8_t event;
-  if(gpio_get_level(PIN_BUTTON_1))
+  for (size_t i = 0; i < KEY_NUM_MAX; i++)
   {
-    event=button_event_parse(pressTick[KEY_1]);
-    if (event)
+    if(gpio_get_level(st_buttonCtrl.keyIOIndex[i]))
     {
-      keyEvent.key1Event=event;
+      event=button_event_parse(pressTick[i]);
+      key.keyEvent[i]=event;
+      pressTick[i]=0;
+      if (event)
+      {
+        key.keyPressd=true;
+      }
     }
-    pressTick[KEY_1]=0;
-  }
-  else
-  {
-    pressTick[KEY_1]++;
-  }
-  if(gpio_get_level(PIN_BUTTON_2))
-  {
-    event=button_event_parse(pressTick[KEY_2]);
-    if (event)
+    else
     {
-      keyEvent.key2Event=event;
+      pressTick[i]+=BUTTON_SCAN_PERIOD;
+      if (pressTick[i]>=BUTTON_LONG_PRESS_TICK)
+      {
+        pressTick[i]=0;
+        key.keyEvent[i]=KEY_EVENT_LONG_PRESS;
+        key.keyPressd=true;
+        power_pin_toggle();      
+      }
     }
-    pressTick[KEY_2]=0;
   }
-  else
+  if (key.keyPressd)
   {
-    pressTick[KEY_2]++;
-  }
-  if (keyEvent.key1Event || keyEvent.key2Event)
-  {
-    xQueueSend(queueHandle,&keyEvent,10);
+    xQueueSend(queueHandle,&key,10);
   }
 }
 //hardware
@@ -114,6 +112,8 @@ esp_err_t dev_button_init(void)
   DEV->buttonHandle= dev_register("/dev/button",&devCB);
   if (DEV->buttonHandle)
   {
+    st_buttonCtrl.keyIOIndex[KEY_1]=PIN_BUTTON_1;
+    st_buttonCtrl.keyIOIndex[KEY_2]=PIN_BUTTON_2;
     st_buttonCtrl.queueEvent=xQueueCreate(2,sizeof(key_event_t));
     st_buttonCtrl.timer=xTimerCreate("key_scan",BUTTON_SCAN_PERIOD,true,NULL,button_scan_timer);
     xTimerStart(st_buttonCtrl.timer,0);

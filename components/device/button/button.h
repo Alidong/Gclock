@@ -2,6 +2,7 @@
 #define _BUTTON_H
 #include "esp_err.h"
 #include <stdint.h>
+#include "stdbool.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -20,9 +21,8 @@ enum button_index_t
 };
 typedef struct 
 {
-    uint32_t key1Event:4;
-    uint32_t key2Event:4;
-    uint32_t keyRemain:24;
+    bool keyPressd;
+    uint8_t keyEvent[KEY_NUM_MAX];
 }key_event_t;
 esp_err_t dev_button_init(void);
 #ifdef __cplusplus
