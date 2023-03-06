@@ -16,6 +16,7 @@ idf_component_register(
     util
     esp_lcd 
     esp_wifi 
+    esp_adc
     wpa_supplicant 
     nvs_flash
     spiffs

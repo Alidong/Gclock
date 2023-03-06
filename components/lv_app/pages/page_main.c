@@ -3,6 +3,7 @@
 #include "lvgl/examples/lv_examples.h"
 #include "device/device.h"
 #include "device/aht10/aht10.h"
+#include "device/power/power.h"
 page_node_t page_main;
 static lv_obj_t * label1 = NULL;
 static void scan_sensor(struct _lv_timer_t * timer)
@@ -10,7 +11,7 @@ static void scan_sensor(struct _lv_timer_t * timer)
     aht10_data_t data;
     read(DEV->aht10Handle,&data,sizeof(aht10_data_t));
     lv_label_set_text_fmt(label1, "#0000ff Tempreture:%d.%d# #ff00ff Humidity:%d.%d%%# #ff0000 of a# label, align the lines to the center "
-                      "and wrap long text automatically.",data.temp/100,data.temp%100,data.humi/10,data.humi&10);
+                      "BAT Volt=%d%%.",data.temp/100,data.temp%100,data.humi/10,data.humi&10,power_get_bat_percent());
 }
 static void onCreate(struct _page_node *page)            // 页面创建
 {

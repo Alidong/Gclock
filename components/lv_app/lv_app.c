@@ -21,12 +21,12 @@ void lv_app_init(void)
     lv_init();
     lv_port_init();
 	//lv_example_label_4();
-    lv_demo_benchmark();
+    //lv_demo_benchmark();
 	//lv_demo_music();
 	//lv_demo_widgets();
 	//lv_demo_stress();
-	// pages_init();
-	// page_push(&page_main);
-	//xTaskCreate(gui_thread,"lvgl", 1024 * 8, NULL, 12, NULL);
-    xTaskCreatePinnedToCore(gui_thread, "lvgl", 1024 * 8, NULL, 12, NULL, 1);
+	pages_init();
+	page_push(&page_main);
+	xTaskCreate(gui_thread,"lvgl", 1024 * 8, NULL, 12, NULL);
+    //xTaskCreatePinnedToCore(gui_thread, "lvgl", 1024 * 8, NULL, 12, NULL, 1);
 }
