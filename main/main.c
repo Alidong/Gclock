@@ -13,7 +13,9 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_vfs.h"
+#include "infra/infra.h"
 #include "device/device.h"
+#include "wifi/wifi.h"
 #include "lv_app/lv_app.h"
 #include "server/server.h"
 #include "client/client.h"
@@ -44,16 +46,15 @@ void app_main(void)
     printf("Minimum free heap size: %ld bytes\n", esp_get_minimum_free_heap_size());
     //device
     device_init();
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    //infra
+    infra_init();
+    //app
+    while (!wifi_is_connected())
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
     server_init();
     client_init();
     //lvgl
     lv_app_init();
-    // while (1)
-    // {
-    //     vTaskDelay(pdMS_TO_TICKS(1000));
-    //     aht10_data_t data;
-    //     read(DEV->aht10Handle,&data,sizeof(aht10_data_t));
-    //     printf("AHT10 Temp=%ld.%01ldC Humi=%ld.%01ld%%\r\n",data.temp/100,data.temp%100,data.humi/10,data.humi%10);
-    // }
 }

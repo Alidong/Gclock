@@ -15,6 +15,8 @@ extern "C"
     LV_FONT_DECLARE(mod_28_font);
     LV_FONT_DECLARE(railway_24_font);
     LV_FONT_DECLARE(robot_24_font);
+    LV_FONT_DECLARE(oloron_100);
+    LV_FONT_DECLARE(modenine_100);
 
 #ifdef __cplusplus
 } /* extern "C" */

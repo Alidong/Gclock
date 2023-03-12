@@ -3,19 +3,26 @@
 #include "../pal_driver.h"
 #include "driver/gpio.h"
 #include "../device.h"
-#include "../power/power.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
-#include "freertos/queue.h"
+#include "freertos/event_groups.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#define BUTTON_LONG_PRESS_TICK pdMS_TO_TICKS(500)
-#define BUTTON_SCAN_PERIOD pdMS_TO_TICKS(10)
+#define BUTTON_LONG_PRESS_TICK pdMS_TO_TICKS(800)
+#define BUTTON_SCAN_PERIOD pdMS_TO_TICKS(50)
+static const char* TAG= "Button";
+enum
+{
+    KEY_EVENT_NONE,
+    KEY_EVENT_CLICK,
+    KEY_EVENT_LONG_PRESS,
+};
 typedef struct 
 {
   TimerHandle_t timer;
-  QueueHandle_t queueEvent;
   uint8_t keyIOIndex[KEY_NUM_MAX];
+  EventGroupHandle_t eventHandle;
+  bool needClear;
 }button_ctrl_t;
 button_ctrl_t st_buttonCtrl;
 static uint8_t button_event_parse(uint16_t pressTick)
@@ -27,7 +34,7 @@ static uint8_t button_event_parse(uint16_t pressTick)
   }
   else if( pressTick!=0 && pressTick<BUTTON_LONG_PRESS_TICK)
   {
-    keyEvent=KEY_EVENT_PRESS;
+    keyEvent=KEY_EVENT_CLICK;
   }
   else
   {
@@ -37,40 +44,40 @@ static uint8_t button_event_parse(uint16_t pressTick)
 }
 static void button_scan_timer( TimerHandle_t xTimer )   
 {
-  static uint16_t pressTick[KEY_NUM_MAX];
-  QueueHandle_t queueHandle=st_buttonCtrl.queueEvent;
-  key_event_t key=
+  static uint32_t tick;
+  static uint32_t pressTick[KEY_NUM_MAX];
+  if (st_buttonCtrl.needClear)
   {
-    .keyPressd=false,
-  };
-  uint8_t event;
+    tick+=BUTTON_SCAN_PERIOD;
+    if (tick>=BUTTON_LONG_PRESS_TICK)
+    {
+      tick=0;
+      st_buttonCtrl.needClear=false;
+      xEventGroupClearBits(st_buttonCtrl.eventHandle,KEY_MASK_LONG_PRESS(KEY_1)|KEY_MASK_LONG_PRESS(KEY_2));
+    }
+  }
   for (size_t i = 0; i < KEY_NUM_MAX; i++)
   {
     if(gpio_get_level(st_buttonCtrl.keyIOIndex[i]))
     {
-      event=button_event_parse(pressTick[i]);
-      key.keyEvent[i]=event;
-      pressTick[i]=0;
-      if (event)
+      switch (button_event_parse(pressTick[i]))
       {
-        key.keyPressd=true;
+      case KEY_EVENT_CLICK:
+        xEventGroupSetBits(st_buttonCtrl.eventHandle,KEY_MASK_CLICK(i));
+        break;
+      case KEY_EVENT_LONG_PRESS:
+        xEventGroupSetBits(st_buttonCtrl.eventHandle,KEY_MASK_LONG_PRESS(i));
+        st_buttonCtrl.needClear=true;
+        break;
+      default:
+        break;
       }
+      pressTick[i]=0;
     }
     else
     {
       pressTick[i]+=BUTTON_SCAN_PERIOD;
-      if (pressTick[i]>=BUTTON_LONG_PRESS_TICK)
-      {
-        pressTick[i]=0;
-        key.keyEvent[i]=KEY_EVENT_LONG_PRESS;
-        key.keyPressd=true;
-        power_pin_toggle();      
-      }
     }
-  }
-  if (key.keyPressd)
-  {
-    xQueueSend(queueHandle,&key,10);
   }
 }
 //hardware
@@ -94,11 +101,13 @@ static esp_err_t button_init()
 }
 static esp_err_t button_read(void*buf,size_t size)
 {
-  key_event_t* button=(key_event_t*)buf;
-  QueueHandle_t queueHandle=st_buttonCtrl.queueEvent;
-  memset(button,0,sizeof(key_event_t));
-  xQueueReceive(queueHandle,button,0);
+  uint32_t* button=(uint32_t*)buf;
+  *button=(uint32_t)xEventGroupWaitBits(st_buttonCtrl.eventHandle,KEY_MASK_CLICK(KEY_1)|KEY_MASK_CLICK(KEY_2),true,false,0);
   return ESP_OK;
+}
+uint32_t button_wait_event(uint32_t keyEvnet,uint32_t tick)
+{
+  return (uint32_t)xEventGroupWaitBits(st_buttonCtrl.eventHandle,keyEvnet,true,true,tick);
 }
 esp_err_t dev_button_init(void) 
 {
@@ -114,7 +123,7 @@ esp_err_t dev_button_init(void)
   {
     st_buttonCtrl.keyIOIndex[KEY_1]=PIN_BUTTON_1;
     st_buttonCtrl.keyIOIndex[KEY_2]=PIN_BUTTON_2;
-    st_buttonCtrl.queueEvent=xQueueCreate(2,sizeof(key_event_t));
+    st_buttonCtrl.eventHandle=xEventGroupCreate();
     st_buttonCtrl.timer=xTimerCreate("key_scan",BUTTON_SCAN_PERIOD,true,NULL,button_scan_timer);
     xTimerStart(st_buttonCtrl.timer,0);
     res=ESP_OK;

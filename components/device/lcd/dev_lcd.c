@@ -2,12 +2,7 @@
 #include "lcd.h"
 #include "../device.h"
 #include "../pal_driver.h"
-enum
-{
-    LCD_SET_LIGHT,
-    LCD_POWER_OFF,
-    LCD_GET_PIX,
-};
+
 //hardware
 static esp_err_t pal_lcd_init()
 {
@@ -20,7 +15,7 @@ static esp_err_t dev_lcd_attr_ctrl(uint8_t cmd,uint32_t arg)
     {
     case LCD_SET_LIGHT:
         lcd_set_light(arg);
-        break;
+        break; 
     default:
         break;
     }

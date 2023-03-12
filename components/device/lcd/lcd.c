@@ -166,7 +166,7 @@ void lcd_set_light(uint8_t lighteness)
   {
     lighteness=100;
   }
-  uint16_t ledcDutySet=lighteness*LEDC_DUTY_MAX/100-1;
+  uint16_t ledcDutySet=lighteness*(LEDC_DUTY_MAX-1)/100;
   ledc_set_fade_with_time(LEDC_MODE,LEDC_CHANNEL,ledcDutySet,500);
   ledc_fade_start(LEDC_MODE,LEDC_CHANNEL,LEDC_FADE_NO_WAIT);
 }

@@ -2,6 +2,11 @@
 #define _DEV_LCD_H
 #include <esp_types.h>
 #include <esp_err.h>
+enum
+{
+    LCD_SET_LIGHT,
+    LCD_LIGHT_POWER,
+};
 typedef struct 
 {
     uint16_t xStart;

@@ -9,6 +9,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_spiffs.h"
+#include "nvs_flash.h"
 // #define CONFIG_SPIFFS_CHECK_ON_START
 static const char *TAG = "dev storage";
 static void spiffs_init(void)
@@ -60,6 +61,7 @@ static void spiffs_init(void)
 
 esp_err_t dev_storage_init(void) 
 {
-  spiffs_init();
-  return ESP_OK;
+    ESP_ERROR_CHECK( nvs_flash_init() );
+    spiffs_init();
+    return ESP_OK;
 }

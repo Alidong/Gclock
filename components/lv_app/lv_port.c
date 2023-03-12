@@ -7,6 +7,7 @@
 // This demo UI is adapted from LVGL official example: https://docs.lvgl.io/master/examples.html#scatter-chart
 
 #include "lv_app.h"
+#include "pages/page.h"
 #include "lvgl.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -48,8 +49,9 @@ void lv_disp_init(void)
     void *buf1 = NULL;
     dev_lcd_pix_t lcd;
     read(DEV->lcdHandle,&lcd,sizeof(dev_lcd_pix_t));
-    uint16_t LCD_H_RES=lcd.width;
-    uint16_t LCD_V_RES=lcd.height;
+    uint16_t LCD_H_RES,LCD_V_RES;
+    LCD_H_RES=lcd.width;
+    LCD_V_RES=lcd.height;
     ESP_LOGI(TAG, "Allocate separate LVGL draw buffers from PSRAM");
     buf1 = malloc(LCD_H_RES * LCD_V_RES * sizeof(lv_color_t));
     assert(buf1);
@@ -89,24 +91,25 @@ static void button_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 
     static uint8_t last_btn = 0;
     /*Get the pressed button's ID*/
-    key_event_t key;
-    read(DEV->buttonHandle,&key,sizeof(key_event_t));
-    if(key.keyPressd) {
+    uint32_t keyEvent;
+    read(DEV->buttonHandle,&keyEvent,sizeof(keyEvent));
+    if (keyEvent&KEY_MASK_CLICK(KEY_1))
+    {
+        last_btn=0; 
         data->state = LV_INDEV_STATE_PR;
-        if (key.keyEvent[KEY_1])
-        {
-            last_btn=0;       
-        }
-        else if(key.keyEvent[KEY_2])
-        {
-            last_btn=1;
-        }
         ESP_LOGI(TAG,"lv:btn_act=%d\r\n",last_btn);
+        page_push(&page_bar);    
+    }
+    else if(keyEvent&KEY_MASK_CLICK(KEY_2))
+    {
+        last_btn=1;
+        data->state = LV_INDEV_STATE_PR;
+        ESP_LOGI(TAG,"lv:btn_act=%d\r\n",last_btn);
+        page_push(&page_bar);    
     }
     else {
         data->state = LV_INDEV_STATE_REL;
     }
-
     /*Save the last pressed button's ID*/
     data->btn_id = last_btn;
 }
@@ -130,10 +133,12 @@ static void lv_indev_init(void)
     indev_drv.read_cb = button_read;
     lv_indev_t * indev_button = lv_indev_drv_register(&indev_drv);
 
-    /*Assign buttons to points on the screen*/
+    /*Assign buttons to points on the screen*/\
+    dev_lcd_pix_t lcd;
+    read(DEV->lcdHandle,&lcd,sizeof(dev_lcd_pix_t));
     static const lv_point_t btn_points[2] = {
-        {0, 0},   /*Button 0 -> x:10; y:10*/
-        {0, 100},  /*Button 1 -> x:40; y:100*/
+        {20, 300},   /*Button 0 -> x:10; y:10*/
+        {150, 300},  /*Button 1 -> x:40; y:100*/
     };
     lv_indev_set_button_points(indev_button, btn_points);
 }

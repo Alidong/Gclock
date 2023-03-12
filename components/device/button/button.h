@@ -6,25 +6,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-enum button_event_t
-{
-    KEY_EVENT_NONE,
-    KEY_EVENT_PRESS,
-    KEY_EVENT_LONG_PRESS,
-    KEY_EVENT_DOUBLE_CLICK,
-};
 enum button_index_t
 {
     KEY_1,
     KEY_2,
     KEY_NUM_MAX,
 };
-typedef struct 
-{
-    bool keyPressd;
-    uint8_t keyEvent[KEY_NUM_MAX];
-}key_event_t;
+#define KEY_MASK_CLICK(keyID)         (0x01<<(keyID*2))
+#define KEY_MASK_LONG_PRESS(keyID)    (0x02<<(keyID*2))
 esp_err_t dev_button_init(void);
+uint32_t button_wait_event(uint32_t keyEvnet,uint32_t tick);
 #ifdef __cplusplus
 }
 #endif

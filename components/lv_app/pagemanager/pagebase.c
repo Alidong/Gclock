@@ -32,15 +32,16 @@ page_err_t page_pop(page_node_t* page)
         pagePop->prePage = NULL;
     }
     /*释放资源*/
-    if (pagePop->onReleaseWithAnim != NULL)
+    if (pagePop->onDisappearing != NULL)
     {
         //pagePop->is_Quit = true;              //是否退出,释放资源
-        pagePop->onReleaseWithAnim(pagePop); //消失动画，并在动画结束后自动释放obj
+        pagePop->onDisappearing(pagePop);       //消失动画
     }
-    else
-    {
-        pagePop->onRelease(pagePop);         //直接释放obj
-    }
+    // if(pagePop->onRelease!= NULL)
+    // {
+    //     pagePop->onRelease(pagePop);         //直接释放obj
+    //     pagePop->isReleased=true;
+    // }
     return PAGE_NOERR;
 }
 page_err_t page_push(page_node_t* page)
@@ -52,7 +53,11 @@ page_err_t page_push(page_node_t* page)
     page->prePage->nextPage = page;
     page->nextPage = NULL;
     //page->prePage->is_Quit = false;
-    page->onCreate(page);
+    if (page->isReleased)
+    {
+        page->onCreate(page);
+        page->isReleased=false;
+    }
     if (page->onAppearing != NULL)
     {
         page->onAppearing(page);
