@@ -1,7 +1,7 @@
 #include "util.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/timers.h"
-#include "freertos/semphr.h" 
+#include "freertos/semphr.h"
 #include "esp_err.h"
 #include "esp_log.h"
 static portMUX_TYPE schedulerLocker = portMUX_INITIALIZER_UNLOCKED;

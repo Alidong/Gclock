@@ -14,12 +14,12 @@
 #include "esp_flash.h"
 #include "esp_vfs.h"
 #include "infra/infra.h"
-#include "device/device.h"
+#include "drivers/driver.h"
 #include "wifi/wifi.h"
 #include "lv_app/lv_app.h"
 #include "server/server.h"
 #include "client/client.h"
-#include "device/device.h"
+
 void app_main(void)
 {
     /* Print chip information */
@@ -35,7 +35,8 @@ void app_main(void)
     unsigned major_rev = chip_info.revision / 100;
     unsigned minor_rev = chip_info.revision % 100;
     printf("silicon revision v%d.%d, ", major_rev, minor_rev);
-    if(esp_flash_get_size(NULL, &flash_size) != ESP_OK) {
+    if (esp_flash_get_size(NULL, &flash_size) != ESP_OK)
+    {
         printf("Get flash size failed");
         return;
     }
@@ -45,7 +46,7 @@ void app_main(void)
 
     printf("Minimum free heap size: %ld bytes\n", esp_get_minimum_free_heap_size());
     //device
-    device_init();
+    drv_init();
     //infra
     infra_init();
     //app

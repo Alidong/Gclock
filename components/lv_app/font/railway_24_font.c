@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 24 px
  * Bpp: 2
- * Opts: 
+ * Opts:
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -21,7 +21,8 @@
  *----------------*/
 
 /*Store the image of the glyphs*/
-static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
+static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] =
+{
     /* U+0020 " " */
 
     /* U+0021 "!" */
@@ -1698,7 +1699,8 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
  *  GLYPH DESCRIPTION
  *--------------------*/
 
-static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
+static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] =
+{
     {.bitmap_index = 0, .adv_w = 0, .box_w = 0, .box_h = 0, .ofs_x = 0, .ofs_y = 0} /* id = 0 reserved */,
     {.bitmap_index = 0, .adv_w = 155, .box_w = 0, .box_h = 0, .ofs_x = 0, .ofs_y = 0},
     {.bitmap_index = 0, .adv_w = 128, .box_w = 5, .box_h = 32, .ofs_x = 2, .ofs_y = -7},
@@ -1790,7 +1792,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
  *  CHARACTER MAPPING
  *--------------------*/
 
-static const uint8_t glyph_id_ofs_list_0[] = {
+static const uint8_t glyph_id_ofs_list_0[] =
+{
     0, 1, 2, 3, 4, 5, 6, 7,
     8, 9, 0, 0, 10, 11, 12, 13,
     14, 15, 16, 17, 18, 19, 20, 21,
@@ -1830,7 +1833,7 @@ static const uint8_t kern_pair_glyph_ids[] =
 static const int8_t kern_pair_values[] =
 {
     -95
-};
+    };
 
 /*Collect the kern pair's data in one place*/
 static const lv_font_fmt_txt_kern_pair_t kern_pairs =
@@ -1848,9 +1851,11 @@ static const lv_font_fmt_txt_kern_pair_t kern_pairs =
 #if LV_VERSION_CHECK(8, 0, 0)
 /*Store all the custom data of the font*/
 static  lv_font_fmt_txt_glyph_cache_t cache;
-static const lv_font_fmt_txt_dsc_t font_dsc = {
+static const lv_font_fmt_txt_dsc_t font_dsc =
+{
 #else
-static lv_font_fmt_txt_dsc_t font_dsc = {
+static lv_font_fmt_txt_dsc_t font_dsc =
+{
 #endif
     .glyph_bitmap = glyph_bitmap,
     .glyph_dsc = glyph_dsc,
@@ -1873,9 +1878,11 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
 
 /*Initialize a public general font descriptor*/
 #if LV_VERSION_CHECK(8, 0, 0)
-const lv_font_t railway_24_font = {
+const lv_font_t railway_24_font =
+{
 #else
-lv_font_t railway_24_font = {
+lv_font_t railway_24_font =
+{
 #endif
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/
