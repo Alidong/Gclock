@@ -102,7 +102,8 @@ static esp_err_t button_init()
 static esp_err_t button_read(void *buf, size_t size)
 {
     uint32_t *button = (uint32_t *)buf;
-    *button = (uint32_t)xEventGroupWaitBits(st_buttonCtrl.eventHandle, KEY_MASK_CLICK(KEY_1) | KEY_MASK_CLICK(KEY_2), true, false, 0);
+    *button = (uint32_t)xEventGroupWaitBits(st_buttonCtrl.eventHandle, KEY_MASK_CLICK(KEY_1) |KEY_MASK_LONG_PRESS(KEY_1)| KEY_MASK_CLICK(KEY_2)|KEY_MASK_LONG_PRESS(KEY_2), false, false, 0);
+    xEventGroupClearBits(st_buttonCtrl.eventHandle,KEY_MASK_CLICK(KEY_1)|KEY_MASK_CLICK(KEY_2));
     return ESP_OK;
 }
 uint32_t button_wait_event(uint32_t keyEvnet, uint32_t tick)

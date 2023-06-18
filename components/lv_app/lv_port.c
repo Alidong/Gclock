@@ -11,7 +11,7 @@
 #include "lvgl.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "drivers/driver.h"
+#include "pal_dev.h"
 #include "drivers/button/button.h"
 #include "drivers/lcd/dev_lcd.h"
 #include <stdio.h>
@@ -49,7 +49,7 @@ void lv_disp_init(void)
     static lv_disp_drv_t disp_drv;      // contains callback functions
     void *buf1 = NULL;
     dev_lcd_pix_t lcd;
-    read(DRV->lcdHandle, &lcd, sizeof(dev_lcd_pix_t));
+    fcntl(DRV->lcdHandle, LCD_GET_SIZE,(uint32_t)&lcd);
     uint16_t LCD_H_RES, LCD_V_RES;
     LCD_H_RES = lcd.width;
     LCD_V_RES = lcd.height;
@@ -99,15 +99,15 @@ static void button_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
     {
         last_btn = 0;
         data->state = LV_INDEV_STATE_PR;
-        ESP_LOGI(TAG, "lv:btn_act=%d\r\n", last_btn);
-        page_push(&page_bar);
+        ESP_LOGD(TAG, "lv:btn_act=%d\r\n", last_btn);
+        page_node_push(&page_node_bar);
     }
     else if (keyEvent & KEY_MASK_CLICK(KEY_2))
     {
         last_btn = 1;
         data->state = LV_INDEV_STATE_PR;
-        ESP_LOGI(TAG, "lv:btn_act=%d\r\n", last_btn);
-        page_push(&page_bar);
+        ESP_LOGD(TAG, "lv:btn_act=%d\r\n", last_btn);
+        page_node_push(&page_node_bar);
     }
     else
     {
@@ -137,8 +137,6 @@ static void lv_indev_init(void)
     lv_indev_t *indev_button = lv_indev_drv_register(&indev_drv);
 
     /*Assign buttons to points on the screen*/\
-    dev_lcd_pix_t lcd;
-    read(DRV->lcdHandle, &lcd, sizeof(dev_lcd_pix_t));
     static const lv_point_t btn_points[2] =
     {
         {20, 300},   /*Button 0 -> x:10; y:10*/

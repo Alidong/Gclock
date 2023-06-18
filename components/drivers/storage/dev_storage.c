@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #include "nvs_flash.h"
+#include "pal_dev.h"
 // #define CONFIG_SPIFFS_CHECK_ON_START
 static const char *TAG = "dev storage";
 static void spiffs_init(void)

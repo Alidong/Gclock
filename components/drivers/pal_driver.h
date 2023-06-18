@@ -1,5 +1,5 @@
-#ifndef _PAL_DEV_H
-#define _PAL_DEV_H
+#ifndef _PAL_DRV_H
+#define _PAL_DRV_H
 #include "esp_err.h"
 #include "esp_types.h"
 #include <stdio.h>

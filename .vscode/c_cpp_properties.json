@@ -1,20 +1,10 @@
 {
     "configurations": [
         {
-            "name": "esp32s3",
+            "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "F:/esp/Espressif/esp-idf",
-                "F:/esp/Espressif/esp-idf/components/**",
-                "F:/esp/Espressif/esp-idf/components/driver/include/",
-                "F:/esp/Espressif/esp-idf/components/esp_lcd/include/",
-                "F:/esp/Espressif/esp-idf/components/esp_wifi/include/",
-                "F:/esp/Espressif/esp-idf/components/wpa_supplicant/include/",
-                "F:/esp/Espressif/esp-idf/components/nvs_flash/include/",
-                "F:/esp/Espressif/esp-idf/components/lwip/lwip/src/include/",
-                "F:/esp/Espressif/esp-idf/components/freertos/FreeRTOS-Kernel/include/freertos/**",
-                "F:/esp/Espressif/esp-idf/components/freertos/FreeRTOS-Kernel-SMP/include/freertos/**",
-                "F:/esp/Espressif/esp-idf/components/freertos/esp_additions/include/freertos/**"
+                "F:\\esp\\Espressif\\esp-idf\\components\\**"
             ],
             "defines": [
                 "_DEBUG",
@@ -22,10 +12,10 @@
                 "_UNICODE"
             ],
             "windowsSdkVersion": "10.0.19041.0",
-            "compilerPath": "F:/esp/Espressif/tools/xtensa-esp32s3-elf/esp-2021r2-patch5-8.4.0/xtensa-esp32s3-elf/bin/xtensa-esp32s3-elf-gcc.exe",
+            "compilerPath": "cl.exe",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "compileCommands": "${workspaceFolder}/build/bootloader/compile_commands.json",
+            "intelliSenseMode": "windows-msvc-x64"
         }
     ],
     "version": 4

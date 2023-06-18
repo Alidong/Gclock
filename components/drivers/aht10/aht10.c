@@ -1,5 +1,6 @@
 #include "aht10.h"
 #include "board.h"
+#include "../pal.h"
 #include "pal_driver.h"
 #include "../driver.h"
 #include "../bus/dev_bus.h"
@@ -15,73 +16,73 @@
 #define AHT10_INIT 0xE1
 #define AHT10_MEASURE 0xAC
 #define AHT10_RESET  0xBA
-#define HUMIDITY(data)  (uint32_t)(data*1000/1024/1024)
-#define TEMP(data)      (uint32_t)(data*2000/1024/1024-50)
-#define AHT10_PERIOD_MS  pdMS_TO_TICKS(1000)
+#define HUMIDITY(data)  (data/(1024.0*1024.0)*100.0)
+#define TEMP(data)      ((data/(1024.0*1024.0))*200.0-50.0)
+#define AHT10_PERIOD_MS  pdMS_TO_TICKS(1000*1)
+const char* TAG="AHT10";
 const uint8_t AHT10_CMD_RESTART[] = {0xBA};
-const uint8_t AHT10_CMD_INITT[] = {0xAC, 0x08, 0x00};
+const uint8_t AHT10_CMD_CALIBRATION[] = {0xE1, 0x08, 0x00};
 const uint8_t AHT10_CMD_MEASURE[] = {0xAC, 0x33, 0x00};
 typedef struct
 {
-    SemaphoreHandle_t lock;
     TimerHandle_t timer;
     aht10_data_t data;
-    bool newData;
+    uint32_t tick;
 } aht10_ctrl_t;
 aht10_ctrl_t st_aht10Ctrl;
 //hardware
+static esp_err_t aht10_reset(void)
+{
+    //reset sensor
+    i2c_bus_write_dev(AHT10_ADDR, AHT10_CMD_RESTART, sizeof(AHT10_CMD_RESTART));
+    vTaskDelay(pdMS_TO_TICKS(30));
+    return ESP_OK;
+}
 static esp_err_t aht10_init(void)
 {
     if (i2c_find_dev(AHT10_ADDR) != ESP_OK)
     {
-        printf("dev: can not find AHT10!\r\n");
+        ESP_LOGW(TAG,"can not find AHT10!\r\n");
         return ESP_FAIL;
     }
-    //reset sensor
-    i2c_bus_write_dev(AHT10_ADDR, AHT10_CMD_RESTART, sizeof(AHT10_CMD_RESTART));
-    vTaskDelay(pdMS_TO_TICKS(30));
-    i2c_bus_write_dev(AHT10_ADDR, AHT10_CMD_INITT, sizeof(AHT10_CMD_INITT));
-    vTaskDelay(pdMS_TO_TICKS(100));
-    printf("dev:AHT10 init!\r\n");
+    aht10_reset();
+    i2c_bus_write_dev(AHT10_ADDR, AHT10_CMD_CALIBRATION, sizeof(AHT10_CMD_CALIBRATION));
+    vTaskDelay(pdMS_TO_TICKS(200));
+    ESP_LOGI(TAG,"AHT10 init!\r\n");
     return ESP_OK;
-}
-static void aht10_set_data(aht10_data_t *data)
-{
-    xSemaphoreTake(st_aht10Ctrl.lock, portMAX_DELAY);
-    memcpy(&st_aht10Ctrl.data, data, sizeof(aht10_data_t));
-    xSemaphoreGive(st_aht10Ctrl.lock);
 }
 static void aht10_get_data(aht10_data_t *data)
 {
-    xSemaphoreTake(st_aht10Ctrl.lock, portMAX_DELAY);
     memcpy(data, &st_aht10Ctrl.data, sizeof(aht10_data_t));
-    xSemaphoreGive(st_aht10Ctrl.lock);
 }
 static esp_err_t aht10_trigger_measurement(aht10_data_t *result)
 {
     esp_err_t res = ESP_FAIL;
-    uint8_t status;
     uint32_t hum = 0, temp = 0;
-    i2c_bus_read_dev(AHT10_ADDR, NULL, 0, &status, 1);
+    uint8_t data[6];
+    i2c_bus_read_dev(AHT10_ADDR, NULL, 0, data, 6);
+    uint8_t status=data[0];
     if ((status & 0x68) == 0x08)
     {
-        uint8_t data[6];
-        i2c_bus_read_dev(AHT10_ADDR, NULL, 0, data, 6);
         hum = (hum | data[1]) << 8;
         hum = (hum | data[2]) << 8;
         hum = (hum | data[3]);
         hum = hum >> 4;
-        temp = (temp | data[3]) << 8;
+        temp = (temp | (data[3]&0x0f)) << 8;
         temp = (temp | data[4]) << 8;
         temp = (temp | data[5]);
-        temp = temp & 0xFFFFF;
-        //trigger a measurement
-        i2c_bus_write_dev(AHT10_ADDR, AHT10_CMD_MEASURE, sizeof(AHT10_CMD_MEASURE));
+        // temp = temp & 0xFFFFF;
         result->temp = TEMP(temp);
         result->humi = HUMIDITY(hum);
         //printf("#AHT10 Temp=%ld Humi=%ld#\r\n",TEMP(temp),HUMIDITY(hum));
-        st_aht10Ctrl.newData = true;
+        //trigger a measurement
+        i2c_bus_write_dev(AHT10_ADDR, AHT10_CMD_MEASURE, sizeof(AHT10_CMD_MEASURE));
         res = ESP_OK;
+    }
+    else
+    {
+        //aht10 re-calibration
+        i2c_bus_write_dev(AHT10_ADDR, AHT10_CMD_CALIBRATION, sizeof(AHT10_CMD_CALIBRATION));
     }
     return res;
 }
@@ -92,7 +93,6 @@ static esp_err_t aht10_read(void *dst, size_t size)
     esp_err_t res = ESP_FAIL;
     aht10_data_t *data = (void *)dst;
     aht10_get_data(data);
-    st_aht10Ctrl.newData = false;
     return res;
 }
 static esp_err_t aht10_fcntl(uint8_t cmd, uint32_t arg)
@@ -119,8 +119,15 @@ static esp_err_t aht10_fcntl(uint8_t cmd, uint32_t arg)
 static void aht10_timer(TimerHandle_t xTimer)
 {
     aht10_data_t data;
-    aht10_trigger_measurement(&data);
-    aht10_set_data(&data);
+    if (aht10_trigger_measurement(&data)==ESP_OK)
+    {
+        st_aht10Ctrl.data=data;
+    }
+    if ((st_aht10Ctrl.tick++)>50)
+    {
+        i2c_bus_write_dev(AHT10_ADDR, AHT10_CMD_CALIBRATION, sizeof(AHT10_CMD_CALIBRATION));
+        st_aht10Ctrl.tick=0;
+    }
 }
 esp_err_t dev_aht10_init(void)
 {
@@ -132,14 +139,12 @@ esp_err_t dev_aht10_init(void)
         .read_dev = aht10_read,
         .write_dev = NULL,
     };
-    st_aht10Ctrl.lock = xSemaphoreCreateBinary();
     st_aht10Ctrl.timer = xTimerCreate("aht10_sacn", AHT10_PERIOD_MS, true, NULL, aht10_timer);
     DRV->aht10Handle = dev_register("/dev/aht10", &devCB);
     if (DRV->aht10Handle)
     {
         res = ESP_OK;
         xTimerStart(st_aht10Ctrl.timer, pdMS_TO_TICKS(100));
-        xSemaphoreGive(st_aht10Ctrl.lock);
     }
     return res;
 }

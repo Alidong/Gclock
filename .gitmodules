@@ -1,3 +1,5 @@
 [submodule "components/lvgl"]
 	path = components/lvgl
 	url = https://github.com/lvgl/lvgl.git
+	path = components/esp-dsp
+	url = https://github.com/espressif/esp-dsp.git

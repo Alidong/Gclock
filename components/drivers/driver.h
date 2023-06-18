@@ -13,7 +13,6 @@ typedef struct
     int buttonHandle;
     int aht10Handle;
 } device_t;
-#define BUILDIN_DISK "/spiffs"
 void drv_init(void);
 device_t *drv_get_handle(void);
 #define DRV (drv_get_handle())

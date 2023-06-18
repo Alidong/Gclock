@@ -8,10 +8,11 @@ ${CMAKE_CURRENT_SOURCE_DIR}/wifi/*.c
 ${CMAKE_CURRENT_SOURCE_DIR}/storage/*.c
 ${CMAKE_CURRENT_SOURCE_DIR}/bat/*.c
 ${CMAKE_CURRENT_SOURCE_DIR}/aht10/*.c
+${CMAKE_CURRENT_SOURCE_DIR}/mic/*.c
 )
 idf_component_register(
     SRCS ${SOURCES}
-    INCLUDE_DIRS "."
+    INCLUDE_DIRS "." 
     PRIV_REQUIRES driver 
     util
     esp_lcd 
@@ -22,4 +23,5 @@ idf_component_register(
     spiffs
     vfs
     wear_levelling
+    esp-dsp
 )

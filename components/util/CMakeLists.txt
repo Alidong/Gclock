@@ -11,7 +11,9 @@ file(GLOB_RECURSE SOURCES
 idf_component_register(
     SRCS ${SOURCES}
     INCLUDE_DIRS "."
-    # PRIV_REQUIRES driver 
+    PRIV_REQUIRES 
+    drivers
+    app
     # esp_lcd 
     # esp_wifi 
     # wpa_supplicant 

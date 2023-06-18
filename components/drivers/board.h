@@ -41,11 +41,14 @@
 #define PIN_BAT_VOLT                 4
 
 /* External expansion */
-#define PIN_SD_CMD                   13
-#define PIN_SD_CLK                   11
-#define PIN_SD_D0                    12
+/*i2s*/
+#define I2S_PORT                     0
+#define I2S_PIN_SD                   1
+#define PIN_L_R                      2
+#define I2S_PIN_WS                   3
+#define I2S_PIN_SCL                  10
 
-
+/*i2c*/
 #define I2C_SCL_PIN                    17
 #define I2C_SDA_PIN                    18
 #define I2C_MASTER_NUM              0                          /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */

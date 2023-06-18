@@ -6,6 +6,7 @@
 #include "storage/dev_storage.h"
 #include "aht10/aht10.h"
 #include "wifi/wifi.h"
+#include "mic/mic_drv.h"
 static const char *TAG = "device init";
 static device_t dev;
 void drv_init(void)
@@ -18,6 +19,7 @@ void drv_init(void)
     dev_lcd_init();
     dev_aht10_init();
     wifi_init();
+    mic_drv_init();
 }
 device_t *drv_get_handle(void)
 {

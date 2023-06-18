@@ -49,13 +49,14 @@ void app_main(void)
     drv_init();
     //infra
     infra_init();
-    //app
-    while (!wifi_is_connected())
-    {
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-    server_init();
-    client_init();
     //lvgl
     lv_app_init();
+    //app
+    // while (!wifi_is_connected())
+    // {
+    //     vTaskDelay(pdMS_TO_TICKS(1000));
+    // }
+    server_init();
+    client_init();
+
 }
