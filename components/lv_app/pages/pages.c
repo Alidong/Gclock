@@ -1,6 +1,6 @@
 #include "pages.h"
-extern void page_top_bar_init();
+extern void page_main_init();
 void pages_init(void)
 {
-    page_top_bar_init();
+    page_main_init();
 }

@@ -8,7 +8,7 @@ idf_component_register(
     SRCS ${SOURCES}
     INCLUDE_DIRS "."
     PRIV_REQUIRES 
-    drivers
+    pal
     esp-tls
     esp_http_server
     json

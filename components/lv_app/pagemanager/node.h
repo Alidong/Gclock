@@ -6,8 +6,10 @@ extern "C"
 #endif
 #include "stdint.h"
 #include "stdbool.h"
+#include <esp_types.h>
 typedef struct _node_item
 {
+	struct _node_item *owner;
     struct _node_item *prev;                              
     struct _node_item *next;                                                                        
 } node_item_t;
@@ -16,11 +18,11 @@ typedef struct _node_list
 	uint16_t len;
     node_item_t root;                                                                      
 } node_list_t;
-#define offsetof(type, member)  (size_t)(&((type*)0)->member)
+#define offset(type, member)  (size_t)(&(((type*)0)->member))
 
     
 #define node_entry(ptr, type, member) \
-	(type*)((size_t)ptr-offsetof(type,member))
+	(type*)((size_t)ptr-offset(type,member))
 
 #define list_first_entry(ptr, type, member) \
 	node_entry((ptr)->next, type, member)
@@ -37,9 +39,24 @@ inline void node_list_init(node_list_t* pList)
     pList->root.next = &(pList->root);
     pList->root.prev = &(pList->root);
 };
+inline void node_list_delete_item(node_list_t* pList,node_item_t* node)
+{
+	if (&(pList->root)==(node->owner))
+	{
+		pList->len--;
+		node_item_t* preNode=node->prev;
+		node_item_t* nexteNode=node->next;
+		preNode->next=nexteNode;
+		nexteNode->prev=preNode;
+		node->next=NULL;
+		node->prev=NULL;
+		node->owner=NULL;
+	}
+}
 inline void node_list_add_head(node_list_t* pList,node_item_t* node)
 {
 	pList->len++;
+	node->owner=&(pList->root);
 	pList->root.next->prev=node;
 	node->next=pList->root.next;
 	node->prev=&(pList->root);
@@ -48,6 +65,7 @@ inline void node_list_add_head(node_list_t* pList,node_item_t* node)
 inline void node_list_add_tail(node_list_t* pList,node_item_t* node)
 {
  	pList->len++;
+	node->owner=&(pList->root);
 	pList->root.prev->next=node;
 	node->prev=pList->root.prev;
 	node->next=&(pList->root);
@@ -71,8 +89,9 @@ inline  node_item_t* node_list_take_head(node_list_t* pList)
 		head=pList->root.next;
 		pList->root.next=head->next;
 		head->next->prev=&(pList->root);
-		// head->next=NULL;
-		// head->prev=NULL;
+		head->next=NULL;
+		head->prev=NULL;
+		head->owner=NULL;
 	}
 	return head;
 }
@@ -94,8 +113,9 @@ inline  node_item_t* node_list_take_tail(node_list_t* pList)
 		tail=pList->root.prev;
 		pList->root.prev=tail->prev;
 		tail->prev->next=&(pList->root);
-		// tail->next=NULL;
-		// tail->prev=NULL;
+		tail->next=NULL;
+		tail->prev=NULL;
+		tail->owner=NULL;
 	}
 	return tail;
 }

@@ -7,63 +7,58 @@
 // This demo UI is adapted from LVGL official example: https://docs.lvgl.io/master/examples.html#scatter-chart
 
 #include "lv_app.h"
-#include "pages/page.h"
 #include "lvgl.h"
+#include "pal.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "pal_dev.h"
-#include "drivers/button/button.h"
-#include "drivers/lcd/dev_lcd.h"
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_timer.h"
-#include "esp_lcd_panel_ops.h"
-#include "esp_lcd_panel_io.h"
-#include "esp_lcd_panel_rgb.h"
-#include "esp_lcd_panel_vendor.h"
 static const char *TAG = "lv_port:";
+static void lv_flush_done_cb(void* ctx)
+{
+    lv_disp_drv_t* drv=(lv_disp_drv_t*)ctx;
+    lv_disp_flush_ready(drv);
+}
 static void lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
 {
-    int offsetx1 = area->x1;
-    int offsetx2 = area->x2;
-    int offsety1 = area->y1;
-    int offsety2 = area->y2;
     // pass the draw buffer to the driver
     //esp_lcd_panel_draw_bitmap(lcd_panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
     dev_lcd_flush_t lcd =
     {
-        .xStart = offsetx1,
-        .xEnd = offsetx2,
-        .yStart = offsety1,
-        .yEnd = offsety2,
+        .xStart = area->x1,
+        .xEnd = area->x2,
+        .yStart = area->y1,
+        .yEnd = area->y2,
         .buf = color_map
     };
     write(DRV->lcdHandle, &lcd, sizeof(dev_lcd_flush_t));
-    //lcd_flush(offsetx1, offsety1, offsetx2, offsety2, color_map);
-    lv_disp_flush_ready(drv);
 }
 void lv_disp_init(void)
 {
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
-    void *buf1 = NULL;
     dev_lcd_pix_t lcd;
     fcntl(DRV->lcdHandle, LCD_GET_SIZE,(uint32_t)&lcd);
-    uint16_t LCD_H_RES, LCD_V_RES;
-    LCD_H_RES = lcd.width;
-    LCD_V_RES = lcd.height;
+    dev_lcd_flush_ready_cb_t flushCB=
+    {
+        .cb=lv_flush_done_cb,
+        .ctx=&disp_drv,
+    };
+    fcntl(DRV->lcdHandle, LCD_SET_CB,(uint32_t)&flushCB);
     ESP_LOGI(TAG, "Allocate separate LVGL draw buffers from PSRAM");
-    buf1 = malloc(LCD_H_RES * LCD_V_RES * sizeof(lv_color_t));
+    void *buf1 = NULL;
+    buf1 = malloc(lcd.width * lcd.height/2 * sizeof(lv_color_t));
     assert(buf1);
     void *buf2 = NULL;
-    buf2 = malloc(LCD_H_RES * LCD_V_RES * sizeof(lv_color_t));
+    buf2 = malloc(lcd.width *  lcd.height/2 * sizeof(lv_color_t));
     assert(buf2);
     // initialize LVGL draw buffers
-    lv_disp_draw_buf_init(&disp_buf, buf1, buf2, LCD_H_RES * LCD_V_RES);
+    lv_disp_draw_buf_init(&disp_buf, buf1, buf2, lcd.width * lcd.height/2);
     lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = LCD_H_RES;
-    disp_drv.ver_res = LCD_V_RES;
+    disp_drv.hor_res = lcd.width;
+    disp_drv.ver_res = lcd.height;
     disp_drv.flush_cb = lvgl_flush_cb;
     disp_drv.draw_buf = &disp_buf;
     //disp_drv.user_data = lcd_panel_handle;
@@ -87,35 +82,33 @@ void lv_tick_init(void)
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, 1 * 1000));
 }
-/*Will be called by the library to read the button*/
-static void button_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
+
+/*Will be called by the library to read the encoder*/
+static void knob_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
 {
 
-    static uint8_t last_btn = 0;
-    /*Get the pressed button's ID*/
-    uint32_t keyEvent;
-    read(DRV->buttonHandle, &keyEvent, sizeof(keyEvent));
-    if (keyEvent & KEY_MASK_CLICK(KEY_1))
+    static int32_t encoder=0;
+    uint32_t knob;
+    read(DRV->knobHandle,&knob,sizeof(knob));
+    if (knob&KNOB_LONG_PRESS_MASK)
     {
-        last_btn = 0;
-        data->state = LV_INDEV_STATE_PR;
-        ESP_LOGD(TAG, "lv:btn_act=%d\r\n", last_btn);
-        page_node_push(&page_node_bar);
+        data->state = LV_INDEV_STATE_PRESSED;
     }
-    else if (keyEvent & KEY_MASK_CLICK(KEY_2))
+    else if(knob&KNOB_LEFT_MASK)
     {
-        last_btn = 1;
-        data->state = LV_INDEV_STATE_PR;
-        ESP_LOGD(TAG, "lv:btn_act=%d\r\n", last_btn);
-        page_node_push(&page_node_bar);
+        encoder--;
+    }
+    else if(knob&KNOB_RIGHT_MASK)
+    {
+       encoder++;
     }
     else
     {
-        data->state = LV_INDEV_STATE_REL;
+        data->state=LV_INDEV_STATE_RELEASED;
     }
-    /*Save the last pressed button's ID*/
-    data->btn_id = last_btn;
+    data->enc_diff=encoder;
 }
+
 static void lv_indev_init(void)
 {
     /**
@@ -132,17 +125,14 @@ static void lv_indev_init(void)
     /*Register a button input device*/
     static lv_indev_drv_t indev_drv;
     lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_BUTTON;
-    indev_drv.read_cb = button_read;
-    lv_indev_t *indev_button = lv_indev_drv_register(&indev_drv);
-
-    /*Assign buttons to points on the screen*/\
-    static const lv_point_t btn_points[2] =
-    {
-        {20, 300},   /*Button 0 -> x:10; y:10*/
-        {150, 300},  /*Button 1 -> x:40; y:100*/
-    };
-    lv_indev_set_button_points(indev_button, btn_points);
+    indev_drv.type = LV_INDEV_TYPE_KEYPAD;
+    indev_drv.read_cb = knob_read;
+    lv_indev_t *indev = lv_indev_drv_register(&indev_drv);
+    /*Later you should create group(s) with `lv_group_t * group = lv_group_create()`,
+     *add objects to the group with `lv_group_add_obj(group, obj)`
+     *and assign this input device to group to navigate in it:
+     *`lv_indev_set_group(indev_encoder, group);`*/
+    // lv_indev_set_group(indev, lv_group_get_default());
 }
 void lv_port_init(void)
 {

@@ -18,10 +18,10 @@ typedef enum
 {
     PM_STATUS_NOT_INIT = 0,
     PM_STATUS_IDLE = 1,
-    PM_STATUS_ANIMATION_PUSH,
-    PM_STATUS_ANIMATION_PUSH_DONE,
-    PM_STATUS_ANIMATION_POP,
-    PM_STATUS_ANIMATION_POP_DONE,
+    PM_STATUS_ANIMATION_ENTRY,
+    PM_STATUS_ANIMATION_ENTRY_DONE,
+    PM_STATUS_ANIMATION_EXIT,
+    PM_STATUS_ANIMATION_EXIT_DONE,
     PM_STATUS_MAX,
 } pm_status_t;
 
@@ -46,7 +46,7 @@ page_node_t *page_node_stack_top(void);
 page_node_t *page_node_stack_root(void);                    
 page_err_t pm_stack_pop_page(pm_anim_style_t animType);
 page_err_t pm_stack_push_page(const char* name, pm_anim_style_t animType);
-                  
+page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType);                  
 void pm_run(void);
 #ifdef __cplusplus
 } /* extern "C" */

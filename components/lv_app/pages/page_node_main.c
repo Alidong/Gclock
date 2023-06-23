@@ -1,33 +1,106 @@
-#include "page_node/page_node.h"
-#include "scroll_page.h"
+#include "../pageManager/page_manager.h"
+#include"icon/icons.h"
 #include "lvgl.h"
-enum{
-    PAGE_TIME,
-    PAGE_ENV,
-    PAGE_SOUND,
-    PAGE_MAX,
-    // PAGE_WHEATHER,
-    // PAGE_MONITOR,
-    // PAGE_IMAGE,
-    
-};
-page_node_t page_node_main;
-extern lv_obj_t* page_env_init(lv_obj_t* parent);
-extern lv_obj_t* page_time_init(lv_obj_t* parent);
-extern lv_obj_t* page_sound_init(lv_obj_t* parent);
-static void onCreate(struct _page_node *page)            // 页面创建
+#include "esp_log.h"
+#include "hal/lv_app_hal.h"
+
+page_node_t page1;
+page_node_t page2;
+page_node_t page3;
+static void timer(lv_timer_t *timer)
 {
-    lv_obj_t* objPool[PAGE_MAX];
-    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
-    objPool[PAGE_TIME]=page_time_init(lv_scr_act());
-    objPool[PAGE_ENV]=page_env_init(lv_scr_act());
-    objPool[PAGE_SOUND]=page_sound_init(lv_scr_act());
-    page_scroll_init(objPool,PAGE_MAX);
+    pm_stack_pop_page(PM_ANIM_OVER_BOTTOM_TO_TOP);
+    lv_timer_pause(timer);
 }
-void page_node_main_init()
+
+static void onCreate(page_node_t *page)            // 页面创建
 {
-    page_node_main.isReleased = true;
-    page_node_main.onCreate = onCreate;
-    page_node_main.ctx = lv_scr_act();
-    page_node_stack_init(&page_node_main);
+    //top bar
+    lv_obj_t* obj = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(obj,LV_PCT(100),LV_PCT(100));
+    lv_obj_set_style_bg_img_src(obj,&IMG_CLOCK,0);
+    lv_obj_center(obj);
+    lv_obj_t* label1 = lv_label_create(obj);
+    // lv_label_set_recolor(label1, true);                      /*Enable re-coloring by commands in the text*/
+    lv_obj_set_width(label1,LV_SIZE_CONTENT);
+    lv_label_set_text(label1, page->name);
+    lv_obj_center(label1);
+    lv_obj_t* btn=lv_btn_create(obj);
+    lv_obj_align(btn,LV_ALIGN_LEFT_MID,0,0);
+    lv_obj_set_size(btn,LV_DPX(48),LV_DPX(48));
+
+    page->obj=obj;
+}
+static void pageAnim(void* ctx, int32_t h)
+{
+    lv_obj_set_height(ctx,h);
+}
+static void onAppearing(page_node_t *page)
+{
+    uint16_t count=lv_obj_get_child_cnt(page->obj);
+    for (size_t i = 0; i < count; i++)
+    {
+        lv_obj_t* child=lv_obj_get_child(page->obj,i);
+        // lv_obj_clear_flag(child,LV_OBJ_FLAG_HIDDEN);
+        lv_anim_t a;
+        lv_anim_init(&a);
+        lv_anim_set_var(&a, child);
+        lv_anim_set_values(&a,0,lv_obj_get_height(child));
+        lv_anim_set_time(&a, 300);
+        lv_anim_set_exec_cb(&a, pageAnim);
+        lv_anim_set_path_cb(&a, lv_anim_path_overshoot);
+        lv_anim_start(&a);
+    }
+}
+static void onRelease(page_node_t *page)            // 页面销毁
+{
+    lv_obj_del(page->obj);
+}
+static void test(lv_timer_t* timer)
+{
+    static uint8_t count=0;
+    count++;
+    if (count==1)
+    {
+        pm_stack_push_page("page1", PM_ANIM_PUSH_LEFT_TO_RIGHT);
+    }
+    else if(count==2)
+    {
+        pm_stack_push_page("page2", PM_ANIM_PUSH_RIGHT_TO_LEFT);
+    }
+    else if(count==3)
+    {
+        pm_stack_push_page("page3", PM_ANIM_PUSH_TOP_TO_BOTTOM);
+    }
+    else if(count==4)
+    {
+        count=0;
+        pm_stack_pop_page( PM_ANIM_OVER_TOP_TO_BOTTOM);
+    }
+
+}
+void page_main_init()
+{
+    page1.onCreate = onCreate;
+    page1.onRelease = onRelease;
+    page1.onAppearing=onAppearing;
+    page1.name = "page1";
+    pm_register_page(&page1);
+
+    page2.onCreate = onCreate;
+    page2.onRelease = onRelease;
+    page2.onAppearing=onAppearing;
+    page2.name = "page2";
+    pm_register_page(&page2);
+
+    page3.onCreate = onCreate;
+    page3.onRelease = onRelease;
+    page3.onAppearing=onAppearing;
+    page3.name = "page3";
+    pm_register_page(&page3);
+
+    ESP_LOGI("DEBUG","%d,%d\r\n",&page1,node_entry(&(page1.node),page_node_t,node));
+     ESP_LOGI("DEBUG","%d,%d\r\n",&page2,node_entry(&(page2.node),page_node_t,node));
+      ESP_LOGI("DEBUG","%d,%d\r\n",&page3,node_entry(&(page3.node),page_node_t,node));
+    lv_timer_create(test, 2 * 1000, NULL);
 }

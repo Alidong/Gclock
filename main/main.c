@@ -14,9 +14,9 @@
 #include "esp_flash.h"
 #include "esp_vfs.h"
 #include "infra/infra.h"
-#include "drivers/driver.h"
+#include "pal.h"
 #include "wifi/wifi.h"
-#include "lv_app/lv_app.h"
+#include "lv_app.h"
 #include "server/server.h"
 #include "client/client.h"
 

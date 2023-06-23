@@ -4,5 +4,5 @@
 void client_init(void)
 {
     //http_req();
-    ntp_init();
+    // ntp_init();
 }

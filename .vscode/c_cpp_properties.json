@@ -4,7 +4,9 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/3rd/lvgl/**",
                 "F:\\esp\\Espressif\\esp-idf\\components\\**"
+
             ],
             "defines": [
                 "_DEBUG",

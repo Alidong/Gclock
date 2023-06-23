@@ -5,6 +5,7 @@ extern "C"
 {
 #endif
 #include "node.h"
+#pragma pack(4)
 typedef struct _page_node
 {
     node_item_t node;                              
@@ -18,7 +19,7 @@ typedef struct _page_node
     void (*eventHandler)(const void *event);                 // lvgl 事件处理回调
     void(*timerHandler)(const void *usrCtx);                 // 需要定时更新数据
 } page_node_t;
-
+#pragma pack()
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
