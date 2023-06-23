@@ -75,7 +75,8 @@
         "lv_app_hal.h": "c",
         "algorithm": "c",
         "xhash": "c",
-        "xtree": "c"
+        "xtree": "c",
+        "random": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM19",

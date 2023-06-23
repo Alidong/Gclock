@@ -62,20 +62,20 @@ static void test(lv_timer_t* timer)
     count++;
     if (count==1)
     {
-        pm_stack_push_page("page1", PM_ANIM_PUSH_LEFT_TO_RIGHT);
+        pm_stack_push_page("page1", PM_ANIM_SIZE_HEIGHT);
     }
     else if(count==2)
     {
-        pm_stack_push_page("page2", PM_ANIM_PUSH_RIGHT_TO_LEFT);
+        pm_stack_push_page("page2", PM_ANIM_SIZE_WIDTH);
     }
     else if(count==3)
     {
-        pm_stack_push_page("page3", PM_ANIM_PUSH_TOP_TO_BOTTOM);
+        pm_stack_push_page("page3", PM_ANIM_PUSH_BOTTOM_TO_TOP);
     }
     else if(count==4)
     {
         count=0;
-        pm_stack_pop_page( PM_ANIM_OVER_TOP_TO_BOTTOM);
+        pm_stack_back_home_page(PM_ANIM_SIZE_WIDTH);
     }
 
 }

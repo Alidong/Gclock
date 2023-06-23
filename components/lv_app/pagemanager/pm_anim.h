@@ -20,6 +20,12 @@ void pm_anim_push_top_to_buttom(page_node_t* origin,page_node_t* new,void* cb,vo
 void pm_anim_push_buttom_to_top(page_node_t* origin,page_node_t* new,void* cb,void* ctx);
 void pm_anim_push_left_to_right(page_node_t* origin,page_node_t* new,void* cb,void* ctx);
 void pm_anim_push_right_to_left(page_node_t* origin,page_node_t* new,void* cb,void* ctx);
+
+void pm_anim_size_width(page_node_t* page,void* cb,void* ctx,int32_t start,int32_t end);
+void pm_anim_size_height(page_node_t* page,void* cb,void* ctx,int32_t start,int32_t end);
+
+void pm_anim_fade_in(page_node_t* page,void* cb,void* ctx);
+void pm_anim_fade_out(page_node_t* page,void* cb,void* ctx);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

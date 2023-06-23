@@ -8,7 +8,8 @@ extern "C"
 typedef enum
 {
     PM_ERR_OK = 0,
-    PM_ERR_NOT_FOUND = -1,
+    PM_ERR_FAIL = -1,
+    PM_ERR_NOT_FOUND,
     PM_ERR_DOUBLE_PAGE,
     PM_ERR_NO_PAGE,
     PM_ERR_BUSY,
@@ -35,6 +36,8 @@ typedef enum
     PM_ANIM_PUSH_RIGHT_TO_LEFT,
     PM_ANIM_PUSH_TOP_TO_BOTTOM,
     PM_ANIM_PUSH_BOTTOM_TO_TOP,
+    PM_ANIM_SIZE_HEIGHT,
+    PM_ANIM_SIZE_WIDTH,
     PM_ANIM_FADE_IN,
     PM_ANIM_FADE_OUT,
     PM_ANIM_NONE,
@@ -46,7 +49,8 @@ page_node_t *page_node_stack_top(void);
 page_node_t *page_node_stack_root(void);                    
 page_err_t pm_stack_pop_page(pm_anim_style_t animType);
 page_err_t pm_stack_push_page(const char* name, pm_anim_style_t animType);
-page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType);                  
+page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType);      
+page_err_t pm_stack_back_home_page(pm_anim_style_t animType);            
 void pm_run(void);
 #ifdef __cplusplus
 } /* extern "C" */
