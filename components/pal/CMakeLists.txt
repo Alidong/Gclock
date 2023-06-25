@@ -26,4 +26,6 @@ idf_component_register(
     vfs
     wear_levelling
     esp-dsp
+    fatfs
+    sdmmc
 )

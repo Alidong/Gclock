@@ -17,17 +17,6 @@ typedef enum
 
 typedef enum
 {
-    PM_STATUS_NOT_INIT = 0,
-    PM_STATUS_IDLE = 1,
-    PM_STATUS_ANIMATION_ENTRY,
-    PM_STATUS_ANIMATION_ENTRY_DONE,
-    PM_STATUS_ANIMATION_EXIT,
-    PM_STATUS_ANIMATION_EXIT_DONE,
-    PM_STATUS_MAX,
-} pm_status_t;
-
-typedef enum
-{
     PM_ANIM_OVER_LEFT_TO_RIGHT = 0,
     PM_ANIM_OVER_RIGHT_TO_LEFT = 1,
     PM_ANIM_OVER_TOP_TO_BOTTOM,
@@ -43,15 +32,13 @@ typedef enum
     PM_ANIM_NONE,
 } pm_anim_style_t;
 
-page_err_t pm_init(void);           //初始化页面栈
-page_err_t pm_register_page(page_node_t* page);  //注册页面到页面池中
-page_node_t *page_node_stack_top(void);                    
-page_node_t *page_node_stack_root(void);                    
-page_err_t pm_stack_pop_page(pm_anim_style_t animType);
-page_err_t pm_stack_push_page(const char* name, pm_anim_style_t animType);
-page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType);      
-page_err_t pm_stack_back_home_page(pm_anim_style_t animType);            
-void pm_run(void);
+page_err_t pm_init(void);                                                       //init pm
+page_err_t pm_register_page(page_node_t* page);                                 //register page in page_pool       
+page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType);                         //release top page in stack
+page_err_t pm_stack_push_page(const char* name, pm_anim_style_t animType);      //push new page
+page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType);    //new page will replce top page in stack 
+page_err_t pm_stack_back_home_page(pm_anim_style_t animType);                   //back to buttom page in stack
+void pm_run(void);                                                              //pm handler 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

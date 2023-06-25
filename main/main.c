@@ -46,7 +46,7 @@ void app_main(void)
 
     printf("Minimum free heap size: %ld bytes\n", esp_get_minimum_free_heap_size());
     //device
-    drv_init();
+    pal_init();
     //infra
     infra_init();
     //lvgl

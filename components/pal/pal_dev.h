@@ -2,7 +2,8 @@
 #define _DEV_PAL_H
 #include <esp_types.h>
 #include <esp_err.h>
-#define BUILDIN_DISK "/spiffs"
+#define INTERNAL_DISK   "/spiffs"
+#define EXTERNAL_DISK   "/sdcard"
 typedef struct
 {
     float humi;

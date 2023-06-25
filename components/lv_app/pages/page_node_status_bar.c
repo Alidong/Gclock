@@ -27,7 +27,7 @@ page_node_t top_status_bar;
 static const char* bat_to_symbol();
 static void timer(lv_timer_t *timer)
 {
-    pm_stack_pop_page(PM_ANIM_OVER_BOTTOM_TO_TOP);
+    pm_stack_pop_page(NULL,PM_ANIM_OVER_BOTTOM_TO_TOP);
     lv_timer_pause(timer);
 }
 
@@ -59,8 +59,8 @@ static void onCreate(page_node_t *page)            // 页面创建
 }
 static void onRelease(page_node_t *page)            // 页面销毁
 {
-    lv_obj_del(page->obj);
     lv_timer_del(page->timerHandler);
+    lv_obj_del(page->obj);
 }
 static const char* bat_to_symbol()
 {
@@ -81,7 +81,7 @@ void page_top_bar_init()
 {
     top_status_bar.onCreate = onCreate;
     top_status_bar.onRelease = onRelease;
-    top_status_bar.name = "StatusBar";
+    lv_snprintf(top_status_bar.name,PAGE_NAME_LEN,"StatusBar");
     pm_register_page(&top_status_bar);
     pm_stack_push_page("StatusBar",PM_ANIM_OVER_TOP_TO_BOTTOM);
     lv_timer_create(test, 5 * 1000, NULL);

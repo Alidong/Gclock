@@ -282,5 +282,6 @@ void wifi_init(void)
     s_wifiCtrl.state = WIFI_STATE_CLOSE;
     wifi_get_cfg();
     initialise_wifi();
+    // s_wifiCtrl.state = WIFI_STATE_OPEN;
     // s_wifiCtrl.timerHandle=xTimerCreate("wifiReconn",pdMS_TO_TICKS(15*1000),false,NULL,auto_smart_config);
 }

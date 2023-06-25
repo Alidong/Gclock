@@ -6,8 +6,18 @@
 #include "stdint.h"
 #include "stdio.h"
 #include "esp_log.h"
-#define TAG "PM:"
 
+#define TAG "PM:"
+typedef enum
+{
+    PM_STATUS_NOT_INIT = 0,
+    PM_STATUS_IDLE = 1,
+    PM_STATUS_ANIMATION_ENTRY,
+    PM_STATUS_ANIMATION_ENTRY_DONE,
+    PM_STATUS_ANIMATION_EXIT,
+    PM_STATUS_ANIMATION_EXIT_DONE,
+    PM_STATUS_MAX,
+} pm_status_t;
 typedef struct page_manager_ctrl
 {
     uint8_t status;
@@ -77,10 +87,18 @@ static page_err_t pm_change_status_to_anim_entry_cb(page_manager_ctrl_t* PM)
 {
     page_err_t err=PM_ERR_OK;
     page_node_t* page=NULL;
+    if (PM->pageWillRelease && PM->pageWillRelease->onDisappearing)
+    {
+        PM->pageWillRelease->onDisappearing(PM->pageWillRelease);
+    }
     if (pm_ctrl.pageStack.len)
     {
         node_item_t* pNode=node_list_get_tail(&(pm_ctrl.pageStack));
         page=node_entry(pNode,page_node_t,node);
+    }
+    else
+    {
+        PM->animType=PM_ANIM_NONE;
     }
     int32_t posStart;
     int32_t posEnd;
@@ -127,33 +145,17 @@ static page_err_t pm_change_status_to_anim_entry_cb(page_manager_ctrl_t* PM)
         pm_anim_push_pos_y(pm_ctrl.pageWillRelease,page,anim_entry_done_cb,NULL,posStart,posEnd);
         break;
     case PM_ANIM_SIZE_HEIGHT:
-        if (page)
-        {
-            posStart=lv_obj_get_height(page->obj)/4;
-            posEnd=lv_obj_get_height(page->obj);
-            pm_anim_size_height(page,anim_entry_done_cb,NULL,posStart,posEnd);
-            break; 
-        }
-        else
-        {
-            PM->animType=PM_ANIM_NONE;
-        }
+        posStart=lv_obj_get_height(page->obj)/4;
+        posEnd=lv_obj_get_height(page->obj);
+        pm_anim_size_height(page,anim_entry_done_cb,NULL,posStart,posEnd);
+        break; 
     case PM_ANIM_SIZE_WIDTH:
-        if (page)
-        {
-            posStart=lv_obj_get_width(page->obj)/4;
-            posEnd=lv_obj_get_width(page->obj);
-            pm_anim_size_width(page,anim_entry_done_cb,NULL,posStart,posEnd);
-            break;    
-        }
-        else
-        {
-            PM->animType=PM_ANIM_NONE;
-        }       
+        posStart=lv_obj_get_width(page->obj)/4;
+        posEnd=lv_obj_get_width(page->obj);
+        pm_anim_size_width(page,anim_entry_done_cb,NULL,posStart,posEnd);
+        break;      
     case PM_ANIM_FADE_IN:
-        node_item_t* pNode=node_list_get_tail(&(PM->pageStack));
-        page_node_t* page=node_entry(pNode,page_node_t,node);
-        pm_anim_fade_in(PM->pageWillRelease,anim_exit_done_cb,NULL);
+        pm_anim_fade_in(page,anim_exit_done_cb,NULL);
         break;                
     default:
         //not support
@@ -165,6 +167,10 @@ static page_err_t pm_change_status_to_anim_entry_cb(page_manager_ctrl_t* PM)
 static page_err_t pm_change_status_to_anim_exit_cb(page_manager_ctrl_t* PM)
 {
     page_err_t err=PM_ERR_OK;
+    if (PM->pageWillRelease && PM->pageWillRelease->onDisappearing)
+    {
+        PM->pageWillRelease->onDisappearing(PM->pageWillRelease);
+    }
     int32_t posStart;
     int32_t posEnd;
     switch (PM->animType)
@@ -265,7 +271,6 @@ page_node_t* pm_find_page_in_pool(const char* name)
     __list_for_each(pos,&(pm_ctrl.pagePool.root))
     {
         page=node_entry(pos,page_node_t,node);
-        ESP_LOGI(TAG,"%d",page);
         if(strcmp(name,page->name)==0)
         {
             break; 
@@ -277,7 +282,7 @@ page_node_t* pm_find_page_in_pool(const char* name)
     }
     if (!page)
     {
-        ESP_LOGE(TAG,"can not find %s page in pool!",name);
+        ESP_LOGI(TAG,"can not find %s page in pool!",name);
     }
     return page;
 }
@@ -299,7 +304,7 @@ page_node_t* pm_find_page_in_stack(const char* name)
     }
     if (!page)
     {
-        ESP_LOGE(TAG,"can not find %s page in stack!",name);
+        ESP_LOGI(TAG,"can not find %s page in stack!",name);
     }
     return page;
 }
@@ -344,7 +349,7 @@ page_err_t pm_stack_push_page(const char* name,pm_anim_style_t animType)
     pm_ctrl.animType = animType;
     return pm_change_status_to(PM_STATUS_ANIMATION_ENTRY);
 }
-page_err_t pm_stack_pop_page(pm_anim_style_t animType)
+page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
 {
     if (pm_ctrl.status!=PM_STATUS_IDLE)
     {
@@ -354,16 +359,35 @@ page_err_t pm_stack_pop_page(pm_anim_style_t animType)
     {
         return PM_ERR_NO_PAGE;
     }
-    node_item_t* pNode=node_list_take_tail(&(pm_ctrl.pageStack));
-    node_list_add_tail(&(pm_ctrl.pagePool),pNode);
-    page_node_t* page = node_entry(pNode,page_node_t,node);
-    // TO DO:
-    // if (page->onDisappearing)
-    // {
-    //     page->onDisappearing(page);
-    // }
-    pm_ctrl.pageWillRelease=page;
-    pm_ctrl.animType = animType;
+    if (!name)
+    {
+        node_item_t* pNode=node_list_take_tail(&(pm_ctrl.pageStack));
+        page_node_t* page =node_entry(pNode,page_node_t,node);
+        node_list_add_tail(&(pm_ctrl.pagePool),&(page->node));
+        pm_ctrl.pageWillRelease=page;
+        pm_ctrl.animType = animType;
+    }
+    else
+    {
+        page_node_t* page =pm_find_page_in_stack(name);
+        if (!page)
+        {
+            return PM_ERR_NO_PAGE;
+        }
+        node_item_t* pNode=node_list_get_tail(&(pm_ctrl.pageStack));
+        page_node_t* topPage = node_entry(pNode,page_node_t,node);
+        node_list_delete_item(&(pm_ctrl.pageStack),&(page->node));
+        node_list_add_tail(&(pm_ctrl.pagePool),&(page->node));
+        pm_ctrl.pageWillRelease=page;
+        if (page==topPage)
+        {   
+            pm_ctrl.animType = animType;
+        }
+        else
+        {
+            pm_ctrl.animType = PM_ANIM_NONE;
+        }
+    }
     return pm_change_status_to(PM_STATUS_ANIMATION_EXIT);
 }
 page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType)
@@ -461,7 +485,7 @@ page_err_t pm_stack_back_home_page(pm_anim_style_t animType)
                 pNode=next;
             }
         }
-        return pm_stack_pop_page(animType);
+        return pm_stack_pop_page(NULL,animType);
     }
     return PM_ERR_FAIL;
 }

@@ -14,8 +14,14 @@ typedef struct
     devHandle lcdHandle;
     devHandle knobHandle;
     devHandle aht10Handle;
+    devHandle wifi;
+    devHandle ble;
+    devHandle mic;
+    devHandle speaker;
+    devHandle rgb;
+    devHandle power;
 } device_t;
-void drv_init(void);
-device_t *drv_get_handle(void);
-#define DRV (drv_get_handle()) 
+void pal_init(void);
+device_t *dev_get_handle(void);
+#define DRV (dev_get_handle()) 
 #endif

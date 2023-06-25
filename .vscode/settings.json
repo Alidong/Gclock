@@ -76,7 +76,14 @@
         "algorithm": "c",
         "xhash": "c",
         "xtree": "c",
-        "random": "c"
+        "random": "c",
+        "esp_vfs_fat.h": "c",
+        "sdmmc_cmd.h": "c",
+        "sdkconfig.h": "c",
+        "http_server.h": "c",
+        "esp_system.h": "c",
+        "esp_http_server.h": "c",
+        "timers.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM19",

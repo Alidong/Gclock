@@ -17,9 +17,16 @@
 #define EXAMPLE_PSRAM_DATA_ALIGNMENT 64
 
 /*ESP32S3*/
-
+/*power*/
 #define PIN_POWER_ON                 46
+#define PIN_BAT_VOLT                 4
+/*SD card spi*/
+#define PIN_SD_MOSI                 41
+#define PIN_SD_MISO                 38
+#define PIN_SD_CLK                  40
+#define PIN_SD_CS                   39
 
+/*LCD spi*/
 #define PIN_LCD_BL                   15
 #define PIN_LCD_RES                  9
 #define PIN_LCD_CS                   10
@@ -28,12 +35,18 @@
 #define PIN_LCD_MOSI                 11
 #define PIN_LCD_MISO                 13
 
-#define PIN_BAT_VOLT                 4
-
+/*knob*/
 #define PIN_KNOB_ENCODER_A           2
 #define PIN_KNOB_ENCODER_B           1
 #define PIN_KNOB_BUTTON              0
-#define KNOB_BUTTON_ACTIVE_LEVEL      0
+#define KNOB_BUTTON_ACTIVE_LEVEL     0
+
+/*Mic ES7210*/
+#define PIN_MIC_INT                  3
+#define PIN_MIC_SD                   14
+#define PIN_MIC_LRCK                 21
+#define PIN_MIC_SCLK                 47
+#define PIN_MIC_MCLK                 48
 /* External expansion */
 /*i2s*/
 #define I2S_PORT                     0

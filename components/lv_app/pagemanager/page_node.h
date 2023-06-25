@@ -5,12 +5,13 @@ extern "C"
 {
 #endif
 #include "node.h"
+#define PAGE_NAME_LEN 32
 #pragma pack(4)
 typedef struct _page_node
 {
     node_item_t node;                              
-    const char* name;                           
-    void *ctx;                                               // contex
+    char name[PAGE_NAME_LEN];                           
+    void *usrCtx;                                            // contex
     void *obj;                                               // 页面对象
     void (*onCreate)(struct _page_node *page);               // 页面创建
     void (*onAppearing)(struct _page_node *page);            // 页面出现的过度动画
