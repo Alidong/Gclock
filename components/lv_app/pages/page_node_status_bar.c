@@ -54,13 +54,13 @@ static void onCreate(page_node_t *page)            // 页面创建
     lv_obj_set_style_text_color(label2, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_label_set_text(label2,BAT_SYMBOL[5]);
     lv_obj_align(label2, LV_ALIGN_RIGHT_MID, 0, 0);
-    page->timerHandler=lv_timer_create(timer, 3 * 1000, NULL);
+   // page->timerHandler=lv_timer_create(timer, 3 * 1000, NULL);
     page->obj=topBar;
 }
 static void onRelease(page_node_t *page)            // 页面销毁
 {
-    lv_timer_del(page->timerHandler);
-    lv_obj_del(page->obj);
+//    lv_timer_del(page->timerHandler);
+   lv_obj_del(page->obj);
 }
 static const char* bat_to_symbol()
 {
@@ -75,7 +75,7 @@ static const char* bat_to_symbol()
 }
 static void test(lv_timer_t* timer)
 {
-    pm_stack_push_page("StatusBar", PM_ANIM_OVER_TOP_TO_BOTTOM);
+    // pm_stack_push_page(PM_ANIM_OVER_TOP_TO_BOTTOM);
 }
 void page_top_bar_init()
 {
@@ -84,5 +84,4 @@ void page_top_bar_init()
     lv_snprintf(top_status_bar.name,PAGE_NAME_LEN,"StatusBar");
     pm_register_page(&top_status_bar);
     pm_stack_push_page("StatusBar",PM_ANIM_OVER_TOP_TO_BOTTOM);
-    lv_timer_create(test, 5 * 1000, NULL);
 }

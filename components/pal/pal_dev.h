@@ -39,6 +39,6 @@ typedef struct
 
 #define KNOB_PRESS_MASK     (0x01<<(0))
 #define KNOB_LEFT_MASK      (0x01<<(1))
-#define KNOB_RIGHT_MASK     (0x02<<(2))
+#define KNOB_RIGHT_MASK     (0x01<<(2))
 #define KNOB_LONG_PRESS_MASK (0x01<<(3))
 #endif

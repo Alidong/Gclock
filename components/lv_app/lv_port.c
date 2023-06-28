@@ -16,6 +16,8 @@
 #include "freertos/task.h"
 #include "esp_timer.h"
 static const char *TAG = "lv_port:";
+uint32_t dispHZ=50;
+static lv_disp_t * disp;
 static void lv_flush_done_cb(void* ctx)
 {
     lv_disp_drv_t* drv=(lv_disp_drv_t*)ctx;
@@ -62,7 +64,7 @@ void lv_disp_init(void)
     disp_drv.flush_cb = lvgl_flush_cb;
     disp_drv.draw_buf = &disp_buf;
     //disp_drv.user_data = lcd_panel_handle;
-    lv_disp_drv_register(&disp_drv);
+    disp=lv_disp_drv_register(&disp_drv);
 }
 static void lvgl_tick(void *arg)
 {
@@ -97,10 +99,21 @@ static void knob_read(lv_indev_drv_t * indev_drv, lv_indev_data_t * data)
     else if(knob&KNOB_LEFT_MASK)
     {
         encoder--;
+        if (dispHZ>1)
+        {
+            dispHZ--;
+            disp->refr_timer->period=(1000/dispHZ);
+        }
+        
     }
     else if(knob&KNOB_RIGHT_MASK)
     {
        encoder++;
+        if (dispHZ<50)
+        {
+            dispHZ++;
+            disp->refr_timer->period=(1000/dispHZ);
+        }
     }
     else
     {

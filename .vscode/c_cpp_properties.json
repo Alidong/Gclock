@@ -5,6 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/3rd/lvgl/**",
+                "${workspaceFolder}/components/**",
                 "F:\\esp\\Espressif\\esp-idf\\components\\**"
 
             ],

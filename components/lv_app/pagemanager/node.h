@@ -6,7 +6,7 @@ extern "C"
 #endif
 #include "stdint.h"
 #include "stdbool.h"
-#include <esp_types.h>
+#include <stddef.h>
 typedef struct _node_item
 {
 	struct _node_item *owner;

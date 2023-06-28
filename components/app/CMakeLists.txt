@@ -1,7 +1,7 @@
 file(GLOB_RECURSE SOURCES 
-${CMAKE_CURRENT_SOURCE_DIR}/server/*.c
-${CMAKE_CURRENT_SOURCE_DIR}/client/*.c
-${CMAKE_CURRENT_SOURCE_DIR}/*.c
+# ${CMAKE_CURRENT_SOURCE_DIR}/server/*.c
+# ${CMAKE_CURRENT_SOURCE_DIR}/client/*.c
+# ${CMAKE_CURRENT_SOURCE_DIR}/*.c
 ${CMAKE_CURRENT_SOURCE_DIR}/infra/*.c
 )
 idf_component_register(

@@ -5,25 +5,27 @@
 #define ANIM_SIZE_PATH lv_anim_path_ease_in
 typedef struct _pm_anim
 {
-    page_node_t* origin;
-    page_node_t* new;
-    anim_done_cb_t cb;
-    void* ctx;
+    lv_obj_t* driving;
+    lv_obj_t* passive;
+    lv_anim_timeline_t* animline;
 }pm_anim_ctrl_t;
 static pm_anim_ctrl_t st_anim_ctrl;
+
 static void anim_reset(void)
 {
-    st_anim_ctrl.cb=NULL;
-    st_anim_ctrl.ctx=NULL;
-    st_anim_ctrl.new=NULL;
-    st_anim_ctrl.origin=NULL;
+    st_anim_ctrl.animline=NULL;
+    st_anim_ctrl.driving=NULL;
+    st_anim_ctrl.passive=NULL;
 }
-static void anim_notify(lv_anim_t* anim)
+void pm_anim_set_timeline(void* timeline)
 {
-    if (st_anim_ctrl.cb)
+    if (timeline)
     {
-        st_anim_ctrl.cb(st_anim_ctrl.ctx);
+        st_anim_ctrl.animline=(lv_anim_timeline_t*)timeline;
     }
+}
+void pm_anim_reset(void)
+{
     anim_reset();
 }
 static void anim_exec_pos_y_cb(void *ctx, int32_t y)
@@ -31,328 +33,220 @@ static void anim_exec_pos_y_cb(void *ctx, int32_t y)
     lv_obj_t* obj=(lv_obj_t*)ctx;
     lv_obj_set_y(obj,y);
 }
-void pm_anim_over_pos_y(page_node_t* page,anim_done_cb_t cb,void* ctx,int32_t start,int32_t end)
+void pm_anim_over_pos_y(void* page,int16_t start_y,int16_t end_y)
 {
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    lv_obj_t* obj=page->obj;
-    lv_obj_update_layout(obj);
+    lv_obj_t* obj=(lv_obj_t*)page;
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_var(&a, obj);
-    lv_anim_set_values(&a,start,end);
+    lv_anim_set_values(&a,start_y,end_y);
     lv_anim_set_time(&a, ANIM_TIME);
     lv_anim_set_exec_cb(&a, anim_exec_pos_y_cb);
     lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
-}
-void pm_anim_over_top_to_buttom(page_node_t* page,anim_done_cb_t cb,void* ctx)
-{
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    lv_obj_t* obj=page->obj;
-    lv_obj_update_layout(obj);
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, obj);
-    lv_anim_set_values(&a,-lv_obj_get_height(lv_scr_act()),0);
-    lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_set_exec_cb(&a, anim_exec_pos_y_cb);
-    lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
-}
-void pm_anim_over_buttom_to_top(page_node_t* page,anim_done_cb_t cb,void* ctx)
-{
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    lv_obj_t* obj=page->obj;
-    lv_obj_update_layout(obj);
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, obj);
-    lv_anim_set_values(&a,lv_obj_get_height(lv_scr_act()),0);
-    lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_set_exec_cb(&a, anim_exec_pos_y_cb);
-    lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
 }
 static void anim_exec_pos_x_cb(void *ctx, int32_t x)
 {
     page_node_t* obj=(page_node_t*)ctx;
     lv_obj_set_x(obj,x);
 }
-void pm_anim_over_pos_x(page_node_t* page,anim_done_cb_t cb,void* ctx,int32_t start,int32_t end)
+void pm_anim_over_pos_x(void* page,int16_t start_x,int16_t end_x)
 {
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    lv_obj_t* obj=page->obj;
-    lv_obj_update_layout(obj);
+    lv_obj_t* obj=(lv_obj_t*)page;
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_var(&a, obj);
-    lv_anim_set_values(&a,start,end);
+    lv_anim_set_values(&a,start_x,end_x);
     lv_anim_set_time(&a, ANIM_TIME);
     lv_anim_set_exec_cb(&a, anim_exec_pos_x_cb);
     lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
 }
-void pm_anim_over_left_to_right(page_node_t* page,anim_done_cb_t cb,void* ctx)
+void pm_anim_over_pos_xy(void* page,int16_t start_x,int16_t end_x,int16_t start_y,int16_t end_y)
 {
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    lv_obj_t* obj=page->obj;
-    lv_obj_update_layout(obj);
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, obj);
-    lv_anim_set_values(&a,-lv_obj_get_width(lv_scr_act()),0);
-    lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_set_exec_cb(&a, anim_exec_pos_x_cb);
-    lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
-}
-void pm_anim_over_right_to_left(page_node_t* page,anim_done_cb_t cb,void* ctx)
-{
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    lv_obj_t* obj=page->obj;
-    lv_obj_update_layout(obj);
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, obj);
-    lv_anim_set_values(&a,lv_obj_get_width(lv_scr_act()),0);
-    lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_set_exec_cb(&a, anim_exec_pos_x_cb);
-    lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
+    lv_obj_t* obj=(lv_obj_t*)page;
+
+    lv_anim_t ax;
+    lv_anim_init(&ax);
+    lv_anim_set_var(&ax, obj);
+    lv_anim_set_values(&ax,start_x,end_x);
+    lv_anim_set_time(&ax, ANIM_TIME);
+    lv_anim_set_exec_cb(&ax, anim_exec_pos_x_cb);
+    lv_anim_set_path_cb(&ax, ANIM_POS_PATH);
+
+    lv_anim_t ay;
+    lv_anim_init(&ay);
+    lv_anim_set_var(&ay, obj);
+    lv_anim_set_values(&ay,start_y,end_y);
+    lv_anim_set_time(&ay, ANIM_TIME);
+    lv_anim_set_exec_cb(&ay, anim_exec_pos_y_cb);
+    lv_anim_set_path_cb(&ay, ANIM_POS_PATH);
+
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ax);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ay);
 }
 static void anim_exec_push_pos_y_cb(void *ctx, int32_t y)
 {
-    if (st_anim_ctrl.new)
-    {
-        lv_obj_set_y(st_anim_ctrl.new->obj,y);
-    }
-    if (st_anim_ctrl.origin)
-    {
-        int16_t start=(int16_t)ctx;
-        lv_obj_set_y(st_anim_ctrl.origin->obj,y-start);
-    }
-}
-void pm_anim_push_pos_y(page_node_t* origin,page_node_t* new,void* cb,void* ctx,int32_t start,int32_t end)
-{
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    st_anim_ctrl.origin=origin;
-    st_anim_ctrl.new=new;
-    if (new)
-    {
-        lv_obj_t* obj=new->obj;
-        lv_obj_update_layout(obj);
-    }
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, (void*)((int16_t)start));
-    lv_anim_set_values(&a,start,end);
-    lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_set_exec_cb(&a, anim_exec_push_pos_y_cb);
-    lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
-}
-void pm_anim_push_top_to_buttom(page_node_t* origin,page_node_t* new,void* cb,void* ctx)
-{
 
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    st_anim_ctrl.origin=origin;
-    st_anim_ctrl.new=new;
-    if (new)
-    {
-        lv_obj_t* obj=new->obj;
-        lv_obj_update_layout(obj);
-    }
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, (void*)((int16_t)1));
-    lv_anim_set_values(&a,-lv_obj_get_height(lv_scr_act()),0);
-    lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_set_exec_cb(&a, anim_exec_push_pos_y_cb);
-    lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
+    lv_obj_set_y(st_anim_ctrl.driving,y);
+    int16_t start=(int16_t)ctx;
+    lv_obj_set_y(st_anim_ctrl.passive,y-start);
 }
-void pm_anim_push_buttom_to_top(page_node_t* origin,page_node_t* new,void* cb,void* ctx)
+void pm_anim_push_pos_y(void* driving,void* passive,int16_t start_y,int16_t end_y)
 {
-
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    st_anim_ctrl.origin=origin;
-    st_anim_ctrl.new=new;
-    if (new)
-    {
-        lv_obj_t* obj=new->obj;
-        lv_obj_update_layout(obj);
-    }
+    st_anim_ctrl.driving=(lv_obj_t*)driving;
+    st_anim_ctrl.passive=(lv_obj_t*)passive;
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, (void*)((int16_t)-1));
-    lv_anim_set_values(&a,lv_obj_get_height(lv_scr_act()),0);
+    lv_anim_set_var(&a, (void*)((int16_t)start_y));
+    lv_anim_set_values(&a,start_y,end_y);
     lv_anim_set_time(&a, ANIM_TIME);
     lv_anim_set_exec_cb(&a, anim_exec_push_pos_y_cb);
     lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
 }
+
 static void anim_exec_push_pos_x_cb(void *ctx, int32_t x)
 {
-    if (st_anim_ctrl.new)
-    {
-         lv_obj_set_x(st_anim_ctrl.new->obj,x);
-    }
-    if (st_anim_ctrl.origin)
-    {
-        int16_t start=(int16_t)ctx;
-        lv_obj_set_x(st_anim_ctrl.origin->obj,x-start);
-    }
+    lv_obj_set_x(st_anim_ctrl.driving,x);
+    int16_t start=(int16_t)ctx;
+    lv_obj_set_x(st_anim_ctrl.passive,x-start);
 }
-void pm_anim_push_pos_x(page_node_t* origin,page_node_t* new,void* cb,void* ctx,int32_t start,int32_t end)
+void pm_anim_push_pos_x(void* driving,void* passive,int16_t start_x,int16_t end_x)
 {
-
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    st_anim_ctrl.origin=origin;
-    st_anim_ctrl.new=new;
-    if (new)
-    {
-        lv_obj_t* obj=new->obj;
-        lv_obj_update_layout(obj);
-    }
+    st_anim_ctrl.driving=(lv_obj_t*)driving;
+    st_anim_ctrl.passive=(lv_obj_t*)passive;
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, (void*)((int16_t)start));
-    lv_anim_set_values(&a,start,end);
+    lv_anim_set_var(&a, (void*)((int16_t)start_x));
+    lv_anim_set_values(&a,start_x,end_x);
     lv_anim_set_time(&a, ANIM_TIME);
     lv_anim_set_exec_cb(&a, anim_exec_push_pos_x_cb);
     lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
 }
-void pm_anim_push_left_to_right(page_node_t* origin,page_node_t* new,void* cb,void* ctx)
+void pm_anim_push_pos_xy(void* driving,void* passive,int16_t start_x,int16_t end_x,int16_t start_y,int16_t end_y)
 {
+    st_anim_ctrl.driving=(lv_obj_t*)driving;
+    st_anim_ctrl.passive=(lv_obj_t*)passive;
+    lv_anim_t ax;
+    lv_anim_init(&ax);
+    lv_anim_set_var(&ax, (void*)((int16_t)start_x));
+    lv_anim_set_values(&ax,start_x,end_x);
+    lv_anim_set_time(&ax, ANIM_TIME);
+    lv_anim_set_exec_cb(&ax, anim_exec_push_pos_x_cb);
+    lv_anim_set_path_cb(&ax, ANIM_POS_PATH);
 
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    st_anim_ctrl.origin=origin;
-    st_anim_ctrl.new=new;
-    if (new)
-    {
-        lv_obj_t* obj=new->obj;
-        lv_obj_update_layout(obj);
-    }
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, (void*)((int16_t)1));
-    lv_anim_set_values(&a,-lv_obj_get_width(lv_scr_act()),0);
-    lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_set_exec_cb(&a, anim_exec_push_pos_x_cb);
-    lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
-}
-void pm_anim_push_right_to_left(page_node_t* origin,page_node_t* new,void* cb,void* ctx)
-{
+    lv_anim_t ay;
+    lv_anim_init(&ay);
+    lv_anim_set_var(&ay, (void*)((int16_t)start_y));
+    lv_anim_set_values(&ay,start_y,end_y);
+    lv_anim_set_time(&ay, ANIM_TIME);
+    lv_anim_set_exec_cb(&ay, anim_exec_push_pos_y_cb);
+    lv_anim_set_path_cb(&ay, ANIM_POS_PATH);
 
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    st_anim_ctrl.origin=origin;
-    st_anim_ctrl.new=new;
-    if (new)
-    {
-        lv_obj_t* obj=new->obj;
-        lv_obj_update_layout(obj);
-    }
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, (void*)((int16_t)-1));
-    lv_anim_set_values(&a,lv_obj_get_width(lv_scr_act()),0);
-    lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_set_exec_cb(&a, anim_exec_push_pos_x_cb);
-    lv_anim_set_path_cb(&a, ANIM_POS_PATH);
-    lv_anim_set_ready_cb(&a,anim_notify);
-    lv_anim_start(&a);
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ax);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ay);
 }
+
 
 static void anim_exec_size_height(void *obj, int32_t height)
 {
     lv_obj_set_height(obj,height);
 }
-void pm_anim_size_height(page_node_t* page,void* cb,void* ctx,int32_t start,int32_t end)
+void pm_anim_size_height(void* page,int16_t start,int16_t end)
 {
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    lv_obj_update_layout(page->obj);
+    lv_obj_t* obj=(lv_obj_t*)page;
+
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, page->obj);
+    lv_anim_set_var(&a, obj);
     lv_anim_set_values(&a, start, end);
     lv_anim_set_exec_cb(&a, anim_exec_size_height);
-    lv_anim_set_ready_cb(&a, anim_notify);
     lv_anim_set_path_cb(&a,ANIM_SIZE_PATH);
     lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_start(&a);
+
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
 }
 static void anim_exec_size_width(void *ctx, int32_t width)
 {
     lv_obj_set_width(ctx,width);
 }
-void pm_anim_size_width(page_node_t* page,void* cb,void* ctx,int32_t start,int32_t end)
+void pm_anim_size_width(void* page,int16_t start,int16_t end)
 {
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
-    lv_obj_update_layout(page->obj);
+    lv_obj_t* obj=(lv_obj_t*)page;
+
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, page->obj);
+    lv_anim_set_var(&a, obj);
     lv_anim_set_values(&a, start, end);
     lv_anim_set_exec_cb(&a, anim_exec_size_width);
-    lv_anim_set_ready_cb(&a, anim_notify);
     lv_anim_set_path_cb(&a,ANIM_SIZE_PATH);
     lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_start(&a);
+
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
+}
+void pm_anim_size(void* page,int16_t start_w,int16_t end_w,int16_t start_h,int16_t end_h)
+{
+    lv_obj_t* obj=(lv_obj_t*)page;
+
+    lv_anim_t aw;
+    lv_anim_init(&aw);
+    lv_anim_set_var(&aw, obj);
+    lv_anim_set_values(&aw, start_w, end_w);
+    lv_anim_set_exec_cb(&aw, anim_exec_size_width);
+    lv_anim_set_path_cb(&aw,ANIM_SIZE_PATH);
+    lv_anim_set_time(&aw, ANIM_TIME);
+
+    lv_anim_t ah;
+    lv_anim_init(&ah);
+    lv_anim_set_var(&ah, obj);
+    lv_anim_set_values(&ah, start_h, end_h);
+    lv_anim_set_exec_cb(&ah, anim_exec_size_height);
+    lv_anim_set_path_cb(&ah,ANIM_SIZE_PATH);
+    lv_anim_set_time(&ah, ANIM_TIME);
+
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&aw);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ah);
 }
 static void anim_exec_fade(void *ctx, int32_t opa)
 {
     lv_obj_set_style_opa(ctx,opa,0);
 }
-void pm_anim_fade_in(page_node_t* page,void* cb,void* ctx)
+void pm_anim_fade_in(void* page)
 {
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
+    lv_obj_t* obj=(lv_obj_t*)page;
+
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, page->obj);
-    lv_anim_set_values(&a, LV_OPA_TRANSP, lv_obj_get_style_opa(page->obj, 0));
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_values(&a, LV_OPA_TRANSP, lv_obj_get_style_opa(obj, 0));
     lv_anim_set_exec_cb(&a, anim_exec_fade);
-    lv_anim_set_ready_cb(&a, anim_notify);
     lv_anim_set_time(&a, ANIM_TIME);
-    lv_anim_start(&a);
+
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
 }
-void pm_anim_fade_out(page_node_t* page,void* cb,void* ctx)
+void pm_anim_fade_out(void* page)
 {
-    st_anim_ctrl.cb=cb;
-    st_anim_ctrl.ctx=ctx;
+    lv_obj_t* obj=(lv_obj_t*)page;
+
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, page->obj);
-    lv_anim_set_values(&a, lv_obj_get_style_opa(page->obj, 0), LV_OPA_TRANSP);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_values(&a, lv_obj_get_style_opa(obj, 0), LV_OPA_TRANSP);
     lv_anim_set_exec_cb(&a, anim_exec_fade);
-    lv_anim_set_ready_cb(&a, anim_notify);
     lv_anim_set_time(&a, ANIM_TIME*2);
-    lv_anim_start(&a);
+
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
 }

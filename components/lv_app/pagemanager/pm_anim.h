@@ -6,26 +6,24 @@ extern "C"
 #endif
 #include <stdint.h>
 #include "page_node.h"
-typedef void(*anim_done_cb_t)(void* ctx);
-void pm_anim_over_pos_x(page_node_t* page,anim_done_cb_t cb,void* ctx,int32_t start,int32_t end);
-void pm_anim_over_pos_y(page_node_t* page,anim_done_cb_t cb,void* ctx,int32_t start,int32_t end);
-void pm_anim_over_top_to_buttom(page_node_t* page,anim_done_cb_t cb,void* ctx);
-void pm_anim_over_buttom_to_top(page_node_t* page,anim_done_cb_t cb,void* ctx);
-void pm_anim_over_left_to_right(page_node_t* page,anim_done_cb_t cb,void* ctx);
-void pm_anim_over_right_to_left(page_node_t* page,anim_done_cb_t cb,void* ctx);
 
-void pm_anim_push_pos_x(page_node_t* origin,page_node_t* new,void* cb,void* ctx,int32_t start,int32_t end);
-void pm_anim_push_pos_y(page_node_t* origin,page_node_t* new,void* cb,void* ctx,int32_t start,int32_t end);
-void pm_anim_push_top_to_buttom(page_node_t* origin,page_node_t* new,void* cb,void* ctx);
-void pm_anim_push_buttom_to_top(page_node_t* origin,page_node_t* new,void* cb,void* ctx);
-void pm_anim_push_left_to_right(page_node_t* origin,page_node_t* new,void* cb,void* ctx);
-void pm_anim_push_right_to_left(page_node_t* origin,page_node_t* new,void* cb,void* ctx);
+void pm_anim_set_timeline(void* timeline);
+void pm_anim_reset(void);
 
-void pm_anim_size_width(page_node_t* page,void* cb,void* ctx,int32_t start,int32_t end);
-void pm_anim_size_height(page_node_t* page,void* cb,void* ctx,int32_t start,int32_t end);
+void pm_anim_over_pos_xy(void* page,int16_t start_x,int16_t end_x,int16_t start_y,int16_t end_y);
+void pm_anim_over_pos_x(void* page,int16_t start_x,int16_t end_x);
+void pm_anim_over_pos_y(void* page,int16_t start_y,int16_t end_y);
 
-void pm_anim_fade_in(page_node_t* page,void* cb,void* ctx);
-void pm_anim_fade_out(page_node_t* page,void* cb,void* ctx);
+void pm_anim_push_pos_xy(void* driving,void* passive,int16_t start_x,int16_t end_x,int16_t start_y,int16_t end_y);
+void pm_anim_push_pos_x(void* driving,void* passive,int16_t start_x,int16_t end_x);
+void pm_anim_push_pos_y(void* driving,void* passive,int16_t start_y,int16_t end_y);
+
+void pm_anim_size(void* page,int16_t start_w,int16_t end_w,int16_t start_h,int16_t end_h);
+void pm_anim_size_width(void* page,int16_t start,int16_t end);
+void pm_anim_size_height(void* page,int16_t start,int16_t end);
+
+void pm_anim_fade_in(void* page);
+void pm_anim_fade_out(void* page);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

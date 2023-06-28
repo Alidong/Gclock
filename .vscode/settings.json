@@ -83,7 +83,12 @@
         "http_server.h": "c",
         "esp_system.h": "c",
         "esp_http_server.h": "c",
-        "timers.h": "c"
+        "timers.h": "c",
+        "complex": "c",
+        "pages.h": "c",
+        "forward_list": "c",
+        "initializer_list": "c",
+        "stdbool.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM19",
