@@ -47,6 +47,10 @@
 #define PIN_MIC_LRCK                 21
 #define PIN_MIC_SCLK                 47
 #define PIN_MIC_MCLK                 48
+
+/*LED*/
+#define PIN_LED_CLK                45
+#define PIN_LED_DO                 42
 /* External expansion */
 /*i2s*/
 #define I2S_PORT                     0

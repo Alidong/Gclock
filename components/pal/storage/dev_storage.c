@@ -72,6 +72,14 @@ static void spiffs_init(void)
     else
     {
         ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+        // FILE *f = fopen(INTERNAL_DISK"/spiffs_test.txt", "w");
+        // fprintf(f,"SPIFFS \r\nPartition size: total: %d, used: %d",total,used);
+        // fclose(f);
+        // f = fopen(INTERNAL_DISK"/spiffs_test.txt", "r");
+        // char str[128];
+        // fgets(str,128,f);
+        // ESP_LOGI(TAG, "read:%s", str);
+        // fclose(f);
     }
 }
 
@@ -95,6 +103,7 @@ static void sd_init(void)
 
     sdmmc_host_t host = SDSPI_HOST_DEFAULT();
     host.slot=SPI3_HOST;
+    host.max_freq_khz=SDMMC_FREQ_DEFAULT;
     spi_bus_config_t bus_cfg = {
         .mosi_io_num = PIN_SD_MOSI,
         .miso_io_num = PIN_SD_MISO,
@@ -132,6 +141,13 @@ static void sd_init(void)
 
     // Card has been initialized, print its properties
     sdmmc_card_print_info(stdout, card);
+
+    // FILE *f = fopen(EXTERNAL_DISK"/sd_test.txt", "r");
+    // char buf[128];
+    // fread(buf,128,1,f);
+    // ESP_LOGI(TAG, "read=%s",buf);
+    // fclose(f);
+
 }
 
 esp_err_t dev_storage_init(void)

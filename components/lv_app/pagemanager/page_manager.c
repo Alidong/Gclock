@@ -5,9 +5,15 @@
 #include <stdlib.h>
 #include "stdint.h"
 #include "stdio.h"
-#include "esp_log.h"
 
+
+#if PM_DEBUG_EN
+#include "esp_log.h"
 #define TAG "PM:"
+#define PM_DEBUG(fmt,args...)  ESP_LOGI(TAG,fmt,##args);
+#else
+#define PM_DEBUG(fmt,args...)
+#endif
 typedef enum
 {
     PM_STATUS_NOT_INIT = 0,
@@ -28,8 +34,10 @@ typedef struct page_manager_ctrl
     uint32_t tick;
     node_list_t pageStack;
     node_list_t pagePool;
-    page_node_t* pageActive;
-    page_node_t* pageWillRelease;
+    node_list_t pageBackstage;
+    page_node_t* pageTop;
+    page_node_t* pageWillDisappear;
+    bool release;
 }page_manager_ctrl_t;
 typedef page_err_t (*pmChangeCB)(page_manager_ctrl_t* PM);
 typedef page_err_t (*pmStatusCB)(page_manager_ctrl_t* PM);
@@ -68,10 +76,9 @@ static page_err_t pm_change_status_to(pm_status_t status)
 static page_err_t pm_change_status_to_idle_cb(page_manager_ctrl_t* PM)
 {
     PM->animType=PM_ANIM_NONE;
-    if (PM->pageWillRelease)
+    if (PM->pageWillDisappear)
     {
-        PM->pageWillRelease->obj=NULL;
-        PM->pageWillRelease=NULL;
+        PM->pageWillDisappear=NULL;
     }
     if (PM->timeline)
     {
@@ -82,9 +89,14 @@ static page_err_t pm_change_status_to_idle_cb(page_manager_ctrl_t* PM)
     if (PM->pageStack.len)
     {
         node_item_t* pNode= node_list_get_tail(&(PM->pageStack));
-        page_node_t* pageActive=node_entry(pNode,page_node_t,node);
-        PM->pageActive=pageActive;
+        page_node_t* pageTop=node_entry(pNode,page_node_t,node);
+        PM->pageTop=pageTop;
     }
+    else
+    {
+        PM->pageTop=NULL;
+    }
+    PM->release=false;
     PM->animStart.x=0;
     PM->animStart.y=0;
     PM->animEnd.x=0;
@@ -99,18 +111,18 @@ static page_err_t pm_change_status_to_anim_start_cb(page_manager_ctrl_t* PM)
     PM->timeline=lv_anim_timeline_create();
     pm_anim_set_timeline(PM->timeline);
     lv_obj_t* objRelease=NULL;
-    if (PM->pageWillRelease)
+    if (PM->pageWillDisappear)
     {   
-        if ( PM->pageWillRelease->onDisappearing)
+        if ( PM->pageWillDisappear->onDisappearing)
         {
-            PM->pageWillRelease->onDisappearing(PM->pageWillRelease,0,PM->timeline);
+            PM->pageWillDisappear->onDisappearing(PM->pageWillDisappear,0,PM->timeline);
         }
-        objRelease=PM->pageWillRelease->obj;
+        objRelease=PM->pageWillDisappear->obj;
     }
     lv_obj_t* objActive=NULL;
-    if (PM->pageActive)
+    if (PM->pageTop)
     {
-        objActive=PM->pageActive->obj;
+        objActive=PM->pageTop->obj;
     }
     switch (PM->animType)
     {
@@ -187,12 +199,12 @@ static page_err_t pm_change_status_to_anim_start_cb(page_manager_ctrl_t* PM)
         pm_change_status_to(PM_STATUS_ANIMATION_DONE);
         break;
     }
-    if (PM->pageActive->onAppearing)
+    if (PM->pageTop && PM->pageTop->onAppearing)
     {
         uint32_t delay= lv_anim_timeline_get_playtime(PM->timeline);
-        PM->pageActive->onAppearing(PM->pageActive,delay,PM->timeline);
+        PM->pageTop->onAppearing(PM->pageTop,delay,PM->timeline);
     }
-    PM->tick=lv_anim_timeline_get_playtime(PM->timeline)+lv_tick_get();
+    PM->tick=lv_anim_timeline_get_playtime(PM->timeline)+lv_tick_get()+50;
     lv_anim_timeline_start(PM->timeline);
     pm_change_status_to(PM_STATUS_ANIMATION_RUNNING);
     return err;
@@ -211,11 +223,26 @@ static page_err_t pm_status_anim_running_cb(page_manager_ctrl_t* PM)
 }
 static page_err_t pm_change_status_to_anim_done_cb(page_manager_ctrl_t* PM)
 {
-    if (PM->pageWillRelease && PM->pageWillRelease->onRelease)
+    if (PM->timeline)
+    {
+        lv_anim_timeline_del(PM->timeline);
+        PM->tick=0;
+        PM->timeline=NULL;
+    }
+    if ( PM->pageWillDisappear )
     {   
-        PM->pageWillRelease->onRelease(PM->pageWillRelease);
-        ESP_LOGI(TAG,"release %s page!",PM->pageWillRelease->name);
-    } 
+        if (PM->release && PM->pageWillDisappear->onRelease)
+        {
+            PM->pageWillDisappear->onRelease(PM->pageWillDisappear);
+            PM->pageWillDisappear->obj=NULL;
+            PM_DEBUG("release %s page!",PM->pageWillDisappear->name);
+        }
+        else
+        {
+            /*backstage page*/
+            lv_obj_add_flag(PM->pageWillDisappear->obj,LV_OBJ_FLAG_HIDDEN);
+        }
+    }
     return pm_change_status_to(PM_STATUS_IDLE);
 }
 page_err_t pm_init(void)
@@ -223,6 +250,7 @@ page_err_t pm_init(void)
     memset(&pm_ctrl,0x00,sizeof(pm_ctrl));
     node_list_init(&(pm_ctrl.pagePool));
     node_list_init(&(pm_ctrl.pageStack));
+    node_list_init(&(pm_ctrl.pageBackstage));
     pm_ctrl.status=PM_STATUS_IDLE;
     return PM_ERR_OK;
 }
@@ -261,9 +289,23 @@ page_node_t* pm_find_page_in_stack(const char* name)
             page=NULL;
         }
     }
-    if (!page)
+    return page;
+}
+page_node_t* pm_find_page_in_backstage(const char* name)
+{
+    page_node_t* page=NULL;
+    node_item_t* pos;
+    __list_for_each(pos,&(pm_ctrl.pageBackstage.root))
     {
-        ESP_LOGI(TAG,"can not find %s page in stack!",name);
+        page=node_entry(pos,page_node_t,node);
+        if(strcmp(name,page->name)==0)
+        {
+            break; 
+        }
+        else
+        {
+            page=NULL;
+        }
     }
     return page;
 }
@@ -283,16 +325,26 @@ page_err_t pm_stack_push_page(const char* name,pm_anim_style_t animType)
     {
         return PM_ERR_DOUBLE_PAGE;
     }
-    page_node_t* page=pm_find_page_in_pool(name);
-    if (!page)
+    page_node_t* page=NULL;
+    if ((page=pm_find_page_in_backstage(name))!=NULL)
     {
-        ESP_LOGE(TAG,"can not find %s page in pool!",name);
+        // PM_DEBUG("%s page in backstage!",name);
+        node_list_delete_item(&(pm_ctrl.pagePool),&(page->node));
+        lv_obj_clear_flag(page->obj,LV_OBJ_FLAG_HIDDEN);
+    }
+    else if((page=pm_find_page_in_pool(name))!=NULL)
+    {
+        // PM_DEBUG("%s page in pool!",name);
+        node_list_delete_item(&(pm_ctrl.pagePool),&(page->node));
+        page->onCreate(page);
+    }
+    else 
+    {
+        PM_DEBUG("can not find %s page!",name);
         return PM_ERR_NOT_FOUND;
     }
-    node_list_delete_item(&(pm_ctrl.pagePool),&(page->node));
     node_list_add_tail(&(pm_ctrl.pageStack),&(page->node));
-    pm_ctrl.pageActive=page;
-    page->onCreate(page);
+    pm_ctrl.pageTop=page;
     lv_obj_move_foreground(page->obj);
     lv_obj_update_layout(page->obj);
     pm_ctrl.animType = animType;
@@ -316,11 +368,11 @@ page_err_t pm_stack_push_page(const char* name,pm_anim_style_t animType)
         pm_ctrl.animEnd.y= lv_disp_get_ver_res(NULL);
         break;
     case PM_ANIM_SIZE_HEIGHT:
-        pm_ctrl.animStart.y=lv_obj_get_height(page->obj)/3;
+        pm_ctrl.animStart.y=lv_obj_get_height(page->obj)/5;
         pm_ctrl.animEnd.y= lv_obj_get_height(page->obj);
         break; 
     case PM_ANIM_SIZE_WIDTH:
-        pm_ctrl.animStart.x=lv_obj_get_width(page->obj)/3;
+        pm_ctrl.animStart.x=lv_obj_get_width(page->obj)/5;
         pm_ctrl.animEnd.x= lv_obj_get_width(page->obj);
         break;       
     case PM_ANIM_FADE_IN:
@@ -350,14 +402,12 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
     }
     if (!name)
     {
-        // node_item_t* pNode=node_list_take_tail(&(pm_ctrl.pageStack));
-        // page_node_t* page =node_entry(pNode,page_node_t,node);
-        page_node_t* page = pm_ctrl.pageActive;
+        page_node_t* page = pm_ctrl.pageTop;
         node_list_delete_item(&(pm_ctrl.pageStack),&(page->node));
         node_list_add_tail(&(pm_ctrl.pagePool),&(page->node));
-        pm_ctrl.pageWillRelease=page;
+        pm_ctrl.pageWillDisappear=page;
         pm_ctrl.animType = animType;
-        pm_ctrl.pageActive=NULL;
+        pm_ctrl.pageTop=NULL;
     }
     else
     {
@@ -368,18 +418,19 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
         }
         node_list_delete_item(&(pm_ctrl.pageStack),&(page->node));
         node_list_add_tail(&(pm_ctrl.pagePool),&(page->node));
-        pm_ctrl.pageWillRelease=page;
-        if (page==pm_ctrl.pageActive)
+        pm_ctrl.pageWillDisappear=page;
+        if (page==pm_ctrl.pageTop)
         {   
             pm_ctrl.animType = animType;
-            pm_ctrl.pageActive=NULL;
+            pm_ctrl.pageTop=NULL;
         }
         else
         {
             pm_ctrl.animType = PM_ANIM_NONE;
         }
     }
-    page_node_t* page = pm_ctrl.pageWillRelease;
+    page_node_t* page = pm_ctrl.pageWillDisappear;
+    pm_ctrl.release=true;
     bool needAnim=true;
     switch (animType)
     {
@@ -401,11 +452,11 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
         break;
     case PM_ANIM_SIZE_HEIGHT:
         pm_ctrl.animStart.y=lv_obj_get_height(page->obj);
-        pm_ctrl.animEnd.y= lv_obj_get_height( page->obj)/3;
+        pm_ctrl.animEnd.y= lv_obj_get_height( page->obj)/5;
         break; 
     case PM_ANIM_SIZE_WIDTH:
         pm_ctrl.animStart.x=lv_obj_get_width(page->obj);
-        pm_ctrl.animEnd.x= lv_obj_get_width(page->obj)/3;
+        pm_ctrl.animEnd.x= lv_obj_get_width(page->obj)/5;
         break;       
     case PM_ANIM_FADE_OUT:
         break;      
@@ -413,7 +464,7 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
         needAnim=false;
         break;
     }
-    if (page->onAppearing || needAnim)
+    if (page->onDisappearing || needAnim)
     {
         return pm_change_status_to(PM_STATUS_ANIMATION_START);
     }
@@ -436,30 +487,33 @@ page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType)
         {
             return PM_ERR_DOUBLE_PAGE;
         }
-        page=pm_find_page_in_pool(name);
-        if (!page)
+        if((page=pm_find_page_in_backstage(name))!=NULL)
         {
-            ESP_LOGE(TAG,"can not find %s page in pool!",name);
+            node_list_delete_item(&(pm_ctrl.pageBackstage),&(page->node));
+            lv_obj_clear_flag(page->obj,LV_OBJ_FLAG_HIDDEN);
+        }
+        else if((page=pm_find_page_in_pool(name))!=NULL)
+        {
+            node_list_delete_item(&(pm_ctrl.pagePool),&(page->node));
+            page->onCreate(page);
+        }
+        else
+        {
+            PM_DEBUG("can not find %s page!",name);
             return PM_ERR_NOT_FOUND;
         }
         if (pm_ctrl.pageStack.len)
         {
-            node_list_delete_item(&(pm_ctrl.pageStack),&(pm_ctrl.pageActive->node));
-            node_list_add_tail(&(pm_ctrl.pagePool),&(pm_ctrl.pageActive->node));
-            pm_ctrl.pageWillRelease = pm_ctrl.pageActive;
-            pm_ctrl.pageActive=NULL;
+            node_list_delete_item(&(pm_ctrl.pageStack),&(pm_ctrl.pageTop->node));
+            node_list_add_tail(&(pm_ctrl.pagePool),&(pm_ctrl.pageTop->node));
+            pm_ctrl.pageWillDisappear = pm_ctrl.pageTop;
         }
         else
         {
-            pm_ctrl.pageWillRelease=NULL;
+            pm_ctrl.pageWillDisappear=NULL;
         }
-        node_list_delete_item(&(pm_ctrl.pagePool),&(page->node));
         node_list_add_tail(&(pm_ctrl.pageStack),&(page->node));
-        pm_ctrl.pageActive=page;
-        if (page->onCreate)
-        {
-            page->onCreate(page);
-        }
+        pm_ctrl.pageTop=page;
     }
     else 
     {
@@ -470,6 +524,7 @@ page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType)
     lv_obj_update_layout(page->obj);
 
     pm_ctrl.animType = animType;
+    pm_ctrl.release=true;
     bool needAnim=true;
     switch (animType)
     {
@@ -494,11 +549,11 @@ page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType)
         pm_ctrl.animEnd.y= 0;
         break;
     case PM_ANIM_SIZE_HEIGHT:
-        pm_ctrl.animStart.y=lv_obj_get_height(page->obj)/3;
+        pm_ctrl.animStart.y=lv_obj_get_height(page->obj)/5;
         pm_ctrl.animEnd.y= lv_obj_get_height( page->obj);
         break; 
     case PM_ANIM_SIZE_WIDTH:
-        pm_ctrl.animStart.x=lv_obj_get_width(page->obj)/3;
+        pm_ctrl.animStart.x=lv_obj_get_width(page->obj)/5;
         pm_ctrl.animEnd.x= lv_obj_get_width(page->obj);
         break;       
     case PM_ANIM_FADE_IN:
@@ -518,12 +573,29 @@ page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType)
 }
 page_err_t pm_stack_back_home_page(pm_anim_style_t animType)
 {
+    page_err_t res=PM_ERR_FAIL;
+    if (pm_ctrl.pageBackstage.len && pm_ctrl.status==PM_STATUS_IDLE)
+    {
+        page_node_t* page;
+        node_item_t* pNode;
+        for ( pNode= (&(pm_ctrl.pageBackstage.root))->next; pNode != (&(pm_ctrl.pageBackstage.root));)
+        {
+            node_item_t* next=pNode->next;
+            page=node_entry(pNode,page_node_t,node);
+            node_list_delete_item(&(pm_ctrl.pageBackstage),pNode);
+            node_list_add_tail(&(pm_ctrl.pagePool),pNode);
+            page->onRelease(page);
+            page->obj=NULL;
+            pNode=next;
+        }
+        res=PM_ERR_OK;
+    }
     if (pm_ctrl.pageStack.len>=2 && pm_ctrl.status==PM_STATUS_IDLE)
     {
         node_item_t* pNode= node_list_get_head(&(pm_ctrl.pageStack));
         page_node_t* home=node_entry(pNode,page_node_t,node);
 
-        page_node_t* topPage=pm_ctrl.pageActive;
+        page_node_t* topPage=pm_ctrl.pageTop;
 
         page_node_t* page;
         for (pNode = (&(pm_ctrl.pageStack.root))->next; pNode != (&(pm_ctrl.pageStack.root));)
@@ -546,8 +618,92 @@ page_err_t pm_stack_back_home_page(pm_anim_style_t animType)
         }
         return pm_stack_pop_page(NULL,animType);
     }
-    return PM_ERR_FAIL;
+    return res;
 }
+page_err_t pm_stack_page_backstage(const char* name,pm_anim_style_t animType)
+{   
+    if (pm_ctrl.status!=PM_STATUS_IDLE)
+    {
+       return PM_ERR_BUSY;
+    }
+    if (!pm_ctrl.pageStack.len)
+    {
+        return PM_ERR_NO_PAGE;
+    }
+    if (!name)
+    {
+        page_node_t* page = pm_ctrl.pageTop;
+        node_list_delete_item(&(pm_ctrl.pageStack),&(page->node));
+        node_list_add_tail(&(pm_ctrl.pageBackstage),&(page->node));
+        pm_ctrl.animType = animType;
+        pm_ctrl.pageTop=NULL;
+        pm_ctrl.pageWillDisappear=page;
+    }
+    else
+    {
+        page_node_t* page =pm_find_page_in_stack(name);
+        if (!page)
+        {
+            return PM_ERR_NO_PAGE;
+        }
+        node_list_delete_item(&(pm_ctrl.pageStack),&(page->node));
+        node_list_add_tail(&(pm_ctrl.pageBackstage),&(page->node));
+        pm_ctrl.pageWillDisappear=page;
+        if (page==pm_ctrl.pageTop)
+        {   
+            pm_ctrl.animType = animType;
+            pm_ctrl.pageTop=NULL;
+        }
+        else
+        {
+            pm_ctrl.animType = PM_ANIM_NONE;
+        }
+    }
+    page_node_t* page = pm_ctrl.pageWillDisappear;
+    pm_ctrl.release=false;
+    bool needAnim=true;
+    switch (animType)
+    {
+    case PM_ANIM_OVER_LEFT_TO_RIGHT:
+        pm_ctrl.animStart.x=0;
+        pm_ctrl.animEnd.x= lv_disp_get_hor_res(NULL);;
+        break;
+    case PM_ANIM_OVER_RIGHT_TO_LEFT:
+        pm_ctrl.animStart.x=0;
+        pm_ctrl.animEnd.x= -lv_disp_get_hor_res(NULL);
+        break;
+    case PM_ANIM_OVER_TOP_TO_BOTTOM:
+        pm_ctrl.animStart.y=0;
+        pm_ctrl.animEnd.y= lv_disp_get_ver_res(NULL);
+        break;
+    case PM_ANIM_OVER_BOTTOM_TO_TOP:
+        pm_ctrl.animStart.y=0;
+        pm_ctrl.animEnd.y= -lv_disp_get_ver_res(NULL);
+        break;
+    case PM_ANIM_SIZE_HEIGHT:
+        pm_ctrl.animStart.y=lv_obj_get_height(page->obj);
+        pm_ctrl.animEnd.y= lv_obj_get_height( page->obj)/5;
+        break; 
+    case PM_ANIM_SIZE_WIDTH:
+        pm_ctrl.animStart.x=lv_obj_get_width(page->obj);
+        pm_ctrl.animEnd.x= lv_obj_get_width(page->obj)/5;
+        break;       
+    case PM_ANIM_FADE_OUT:
+        break;      
+    default:
+        needAnim=false;
+        break;
+    }
+    if (page->onDisappearing || needAnim)
+    {
+        return pm_change_status_to(PM_STATUS_ANIMATION_START);
+    }
+    else
+    {
+        return pm_change_status_to(PM_STATUS_ANIMATION_DONE);
+    }
+}
+
 void pm_run(void)
 {
     if (PM_RUN_STATUS_CB[pm_ctrl.status])

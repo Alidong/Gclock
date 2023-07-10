@@ -1,12 +1,10 @@
 #include "pm_anim.h"
 #include "lvgl.h"
-#define ANIM_TIME 300
+#define ANIM_TIME 500
 #define ANIM_POS_PATH lv_anim_path_ease_out
-#define ANIM_SIZE_PATH lv_anim_path_ease_in
+#define ANIM_SIZE_PATH lv_anim_path_overshoot
 typedef struct _pm_anim
 {
-    lv_obj_t* driving;
-    lv_obj_t* passive;
     lv_anim_timeline_t* animline;
 }pm_anim_ctrl_t;
 static pm_anim_ctrl_t st_anim_ctrl;
@@ -14,8 +12,6 @@ static pm_anim_ctrl_t st_anim_ctrl;
 static void anim_reset(void)
 {
     st_anim_ctrl.animline=NULL;
-    st_anim_ctrl.driving=NULL;
-    st_anim_ctrl.passive=NULL;
 }
 void pm_anim_set_timeline(void* timeline)
 {
@@ -48,8 +44,7 @@ void pm_anim_over_pos_y(void* page,int16_t start_y,int16_t end_y)
 }
 static void anim_exec_pos_x_cb(void *ctx, int32_t x)
 {
-    page_node_t* obj=(page_node_t*)ctx;
-    lv_obj_set_x(obj,x);
+    lv_obj_set_x(ctx,x);
 }
 void pm_anim_over_pos_x(void* page,int16_t start_x,int16_t end_x)
 {
@@ -90,53 +85,64 @@ void pm_anim_over_pos_xy(void* page,int16_t start_x,int16_t end_x,int16_t start_
 }
 static void anim_exec_push_pos_y_cb(void *ctx, int32_t y)
 {
-
-    lv_obj_set_y(st_anim_ctrl.driving,y);
-    int16_t start=(int16_t)ctx;
-    lv_obj_set_y(st_anim_ctrl.passive,y-start);
+    lv_obj_set_y(ctx,y);
 }
 void pm_anim_push_pos_y(void* driving,void* passive,int16_t start_y,int16_t end_y)
 {
-    st_anim_ctrl.driving=(lv_obj_t*)driving;
-    st_anim_ctrl.passive=(lv_obj_t*)passive;
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, (void*)((int16_t)start_y));
+    lv_anim_set_var(&a, driving);
     lv_anim_set_values(&a,start_y,end_y);
     lv_anim_set_time(&a, ANIM_TIME);
     lv_anim_set_exec_cb(&a, anim_exec_push_pos_y_cb);
     lv_anim_set_path_cb(&a, ANIM_POS_PATH);
+
+    lv_anim_t b;
+    lv_anim_init(&b);
+    lv_anim_set_var(&b, passive);
+    lv_anim_set_values(&b,0,end_y-start_y);
+    lv_anim_set_time(&b, ANIM_TIME);
+    lv_anim_set_exec_cb(&b, anim_exec_push_pos_y_cb);
+    lv_anim_set_path_cb(&b, ANIM_POS_PATH);
+
     uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
     lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&b);
 }
 
 static void anim_exec_push_pos_x_cb(void *ctx, int32_t x)
 {
-    lv_obj_set_x(st_anim_ctrl.driving,x);
-    int16_t start=(int16_t)ctx;
-    lv_obj_set_x(st_anim_ctrl.passive,x-start);
+    lv_obj_set_x(ctx,x);
 }
 void pm_anim_push_pos_x(void* driving,void* passive,int16_t start_x,int16_t end_x)
 {
-    st_anim_ctrl.driving=(lv_obj_t*)driving;
-    st_anim_ctrl.passive=(lv_obj_t*)passive;
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_var(&a, (void*)((int16_t)start_x));
+    lv_anim_set_var(&a, driving);
     lv_anim_set_values(&a,start_x,end_x);
     lv_anim_set_time(&a, ANIM_TIME);
     lv_anim_set_exec_cb(&a, anim_exec_push_pos_x_cb);
     lv_anim_set_path_cb(&a, ANIM_POS_PATH);
+
+    lv_anim_t b;
+    lv_anim_init(&b);
+    lv_anim_set_var(&b, passive);
+    lv_anim_set_values(&b,0,end_x-start_x);
+    lv_anim_set_time(&b, ANIM_TIME);
+    lv_anim_set_exec_cb(&b, anim_exec_push_pos_x_cb);
+    lv_anim_set_path_cb(&b, ANIM_POS_PATH);
+
     uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
     lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&a);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&b);
 }
 void pm_anim_push_pos_xy(void* driving,void* passive,int16_t start_x,int16_t end_x,int16_t start_y,int16_t end_y)
 {
-    st_anim_ctrl.driving=(lv_obj_t*)driving;
-    st_anim_ctrl.passive=(lv_obj_t*)passive;
+    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+
     lv_anim_t ax;
     lv_anim_init(&ax);
-    lv_anim_set_var(&ax, (void*)((int16_t)start_x));
+    lv_anim_set_var(&ax, driving);
     lv_anim_set_values(&ax,start_x,end_x);
     lv_anim_set_time(&ax, ANIM_TIME);
     lv_anim_set_exec_cb(&ax, anim_exec_push_pos_x_cb);
@@ -144,13 +150,29 @@ void pm_anim_push_pos_xy(void* driving,void* passive,int16_t start_x,int16_t end
 
     lv_anim_t ay;
     lv_anim_init(&ay);
-    lv_anim_set_var(&ay, (void*)((int16_t)start_y));
+    lv_anim_set_var(&ay, driving);
     lv_anim_set_values(&ay,start_y,end_y);
     lv_anim_set_time(&ay, ANIM_TIME);
     lv_anim_set_exec_cb(&ay, anim_exec_push_pos_y_cb);
     lv_anim_set_path_cb(&ay, ANIM_POS_PATH);
 
-    uint32_t playtime=lv_anim_timeline_get_playtime(st_anim_ctrl.animline);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ax);
+    lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ay);
+
+    lv_anim_init(&ax);
+    lv_anim_set_var(&ax, passive);
+    lv_anim_set_values(&ax,0,end_x-start_x);
+    lv_anim_set_time(&ax, ANIM_TIME);
+    lv_anim_set_exec_cb(&ax, anim_exec_push_pos_x_cb);
+    lv_anim_set_path_cb(&ax, ANIM_POS_PATH);
+
+    lv_anim_init(&ay);
+    lv_anim_set_var(&ay, passive);
+    lv_anim_set_values(&ay,0,end_y-start_x);
+    lv_anim_set_time(&ay, ANIM_TIME);
+    lv_anim_set_exec_cb(&ay, anim_exec_push_pos_y_cb);
+    lv_anim_set_path_cb(&ay, ANIM_POS_PATH);
+
     lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ax);
     lv_anim_timeline_add(st_anim_ctrl.animline,playtime,&ay);
 }

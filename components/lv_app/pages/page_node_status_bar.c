@@ -83,5 +83,4 @@ void page_top_bar_init()
     top_status_bar.onRelease = onRelease;
     lv_snprintf(top_status_bar.name,PAGE_NAME_LEN,"StatusBar");
     pm_register_page(&top_status_bar);
-    pm_stack_push_page("StatusBar",PM_ANIM_OVER_TOP_TO_BOTTOM);
 }

@@ -45,6 +45,6 @@ int pal_lcd_init(void)
         .attr_ctl_dev = dev_lcd_attr_ctrl,
         .write_dev = dev_lcd_write,
     };
-    devHandle lcdHandle = dev_register("/dev/lcd", &devCB);
+    devHandle lcdHandle = dev_register("lcd", &devCB);
     return lcdHandle;
 }

@@ -6,8 +6,8 @@
 #include "esp_types.h"
 #include <stdio.h>
 #include <fcntl.h>
-#include "pal_driver.h"
 #include "pal_dev.h"
+#include "pal_driver.h"
 
 typedef struct
 {
@@ -18,7 +18,7 @@ typedef struct
     devHandle ble;
     devHandle mic;
     devHandle speaker;
-    devHandle rgb;
+    devHandle ledHandle;
     devHandle power;
 } device_t;
 void pal_init(void);

@@ -34,10 +34,11 @@ typedef enum
 
 page_err_t pm_init(void);                                                       //init pm
 page_err_t pm_register_page(page_node_t* page);                                 //register page in page_pool       
-page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType);                         //release top page in stack
+page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType);        //release top page in stack
 page_err_t pm_stack_push_page(const char* name, pm_anim_style_t animType);      //push new page
 page_err_t pm_stack_replace_page(const char* name,pm_anim_style_t animType);    //new page will replce top page in stack 
 page_err_t pm_stack_back_home_page(pm_anim_style_t animType);                   //back to buttom page in stack
+page_err_t pm_stack_page_backstage(const char* name,pm_anim_style_t animType);
 void pm_run(void);                                                              //pm handler 
 #ifdef __cplusplus
 } /* extern "C" */

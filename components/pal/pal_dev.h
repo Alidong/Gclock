@@ -2,6 +2,7 @@
 #define _DEV_PAL_H
 #include <esp_types.h>
 #include <esp_err.h>
+#define DEV_PATH "/dev"
 #define INTERNAL_DISK   "/spiffs"
 #define EXTERNAL_DISK   "/sdcard"
 typedef struct
@@ -15,6 +16,9 @@ enum
     LCD_SET_LIGHT,
     LCD_GET_SIZE,
     LCD_SET_CB,
+    LED_SET_COLOR,
+    LED_SCROLL_LEFT,
+    LED_SCROLL_RIGHT,
 };
 typedef struct
 {

@@ -11,5 +11,6 @@ typedef struct
     esp_err_t(*attr_ctl_dev)(uint8_t cmd, uint32_t arg);
 } dev_cb_t;
 typedef int devHandle;
-devHandle dev_register(const char *path, dev_cb_t *cb);
+devHandle dev_register(const char *name, dev_cb_t *cb);
+void pal_devfs_mount(const char *path);
 #endif

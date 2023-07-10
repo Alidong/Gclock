@@ -17,7 +17,7 @@
 #include "pal.h"
 #include "wifi/wifi.h"
 #include "lv_app.h"
-// #include "server/server.h"
+#include "server/server.h"
 // #include "client/client.h"
 
 void app_main(void)
@@ -56,7 +56,7 @@ void app_main(void)
     // {
     //     vTaskDelay(pdMS_TO_TICKS(1000));
     // }
-    // server_init();
+    server_init();
     // client_init();
 
 }

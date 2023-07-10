@@ -72,11 +72,11 @@ static void encoder_cb(void *handle, void *usr_data)
     switch (event)
     {
     case KNOB_LEFT:
-        ESP_LOGI(TAG,"left");
+        // ESP_LOGI(TAG,"left");
         xEventGroupSetBits(st_knob_ctrl.event,KNOB_LEFT_MASK);
         break;
     case KNOB_RIGHT:
-        ESP_LOGI(TAG,"right");
+        // ESP_LOGI(TAG,"right");
         xEventGroupSetBits(st_knob_ctrl.event,KNOB_RIGHT_MASK);
         break;
     default:
@@ -103,6 +103,6 @@ int pal_knob_init(void)
         .read_dev = dev_knob_read,
         .write_dev = NULL,
     };
-    devHandle knob = dev_register("/dev/knob", &devCB);
+    devHandle knob = dev_register("knob", &devCB);
     return knob;
 }
