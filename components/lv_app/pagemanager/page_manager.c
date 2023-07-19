@@ -204,7 +204,7 @@ static page_err_t pm_change_status_to_anim_start_cb(page_manager_ctrl_t* PM)
         uint32_t delay= lv_anim_timeline_get_playtime(PM->timeline);
         PM->pageTop->onAppearing(PM->pageTop,delay,PM->timeline);
     }
-    PM->tick=lv_anim_timeline_get_playtime(PM->timeline)+lv_tick_get()+50;
+    PM->tick=lv_anim_timeline_get_playtime(PM->timeline)+lv_tick_get();
     lv_anim_timeline_start(PM->timeline);
     pm_change_status_to(PM_STATUS_ANIMATION_RUNNING);
     return err;
@@ -214,7 +214,7 @@ static page_err_t pm_status_anim_running_cb(page_manager_ctrl_t* PM)
 {   
     if (PM->timeline)
     {
-        if (lv_tick_get()>(PM->tick))
+        if (lv_tick_get()>(PM->tick+50))
         {
             return pm_change_status_to(PM_STATUS_ANIMATION_DONE);
         }
@@ -240,6 +240,7 @@ static page_err_t pm_change_status_to_anim_done_cb(page_manager_ctrl_t* PM)
         else
         {
             /*backstage page*/
+            lv_obj_set_pos(PM->pageWillDisappear->obj,0,0);
             lv_obj_add_flag(PM->pageWillDisappear->obj,LV_OBJ_FLAG_HIDDEN);
         }
     }
@@ -344,6 +345,7 @@ page_err_t pm_stack_push_page(const char* name,pm_anim_style_t animType)
         return PM_ERR_NOT_FOUND;
     }
     node_list_add_tail(&(pm_ctrl.pageStack),&(page->node));
+    pm_ctrl.pageWillDisappear=pm_ctrl.pageTop;
     pm_ctrl.pageTop=page;
     lv_obj_move_foreground(page->obj);
     lv_obj_update_layout(page->obj);
@@ -352,18 +354,22 @@ page_err_t pm_stack_push_page(const char* name,pm_anim_style_t animType)
     switch (animType)
     {
     case PM_ANIM_OVER_LEFT_TO_RIGHT:
+    case PM_ANIM_PUSH_LEFT_TO_RIGHT:
         pm_ctrl.animStart.x=-lv_disp_get_hor_res(NULL);
         pm_ctrl.animEnd.x= 0;
         break;
     case PM_ANIM_OVER_RIGHT_TO_LEFT:
+    case PM_ANIM_PUSH_RIGHT_TO_LEFT:
         pm_ctrl.animStart.x=lv_disp_get_hor_res(NULL);
         pm_ctrl.animEnd.x= 0;
         break;
     case PM_ANIM_OVER_TOP_TO_BOTTOM:
+    case PM_ANIM_PUSH_TOP_TO_BOTTOM:
         pm_ctrl.animStart.y=-lv_disp_get_ver_res(NULL);
         pm_ctrl.animEnd.y= 0;
         break;
     case PM_ANIM_OVER_BOTTOM_TO_TOP:
+    case PM_ANIM_PUSH_BOTTOM_TO_TOP:
         pm_ctrl.animStart.y=0;
         pm_ctrl.animEnd.y= lv_disp_get_ver_res(NULL);
         break;
@@ -400,6 +406,7 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
     {
         return PM_ERR_NO_PAGE;
     }
+    bool isTop=false;
     if (!name)
     {
         page_node_t* page = pm_ctrl.pageTop;
@@ -408,6 +415,7 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
         pm_ctrl.pageWillDisappear=page;
         pm_ctrl.animType = animType;
         pm_ctrl.pageTop=NULL;
+        isTop=true;
     }
     else
     {
@@ -423,6 +431,7 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
         {   
             pm_ctrl.animType = animType;
             pm_ctrl.pageTop=NULL;
+            isTop=true;
         }
         else
         {
@@ -435,18 +444,22 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
     switch (animType)
     {
     case PM_ANIM_OVER_LEFT_TO_RIGHT:
+    case PM_ANIM_PUSH_LEFT_TO_RIGHT:
         pm_ctrl.animStart.x=0;
-        pm_ctrl.animEnd.x= lv_disp_get_hor_res(NULL);;
+        pm_ctrl.animEnd.x= lv_disp_get_hor_res(NULL);
         break;
     case PM_ANIM_OVER_RIGHT_TO_LEFT:
+    case PM_ANIM_PUSH_RIGHT_TO_LEFT:
         pm_ctrl.animStart.x=0;
         pm_ctrl.animEnd.x= -lv_disp_get_hor_res(NULL);
         break;
     case PM_ANIM_OVER_TOP_TO_BOTTOM:
+    case PM_ANIM_PUSH_TOP_TO_BOTTOM:
         pm_ctrl.animStart.y=0;
         pm_ctrl.animEnd.y= lv_disp_get_ver_res(NULL);
         break;
     case PM_ANIM_OVER_BOTTOM_TO_TOP:
+    case PM_ANIM_PUSH_BOTTOM_TO_TOP:
         pm_ctrl.animStart.y=0;
         pm_ctrl.animEnd.y= -lv_disp_get_ver_res(NULL);
         break;
@@ -457,14 +470,14 @@ page_err_t pm_stack_pop_page(const char* name,pm_anim_style_t animType)
     case PM_ANIM_SIZE_WIDTH:
         pm_ctrl.animStart.x=lv_obj_get_width(page->obj);
         pm_ctrl.animEnd.x= lv_obj_get_width(page->obj)/5;
-        break;       
-    case PM_ANIM_FADE_OUT:
-        break;      
+        break;
+    case PM_ANIM_FADE_OUT:  
+        break;         
     default:
         needAnim=false;
         break;
     }
-    if (page->onDisappearing || needAnim)
+    if (isTop && (page->onDisappearing || needAnim))
     {
         return pm_change_status_to(PM_STATUS_ANIMATION_START);
     }
@@ -630,6 +643,7 @@ page_err_t pm_stack_page_backstage(const char* name,pm_anim_style_t animType)
     {
         return PM_ERR_NO_PAGE;
     }
+    bool isTop=false;
     if (!name)
     {
         page_node_t* page = pm_ctrl.pageTop;
@@ -638,6 +652,7 @@ page_err_t pm_stack_page_backstage(const char* name,pm_anim_style_t animType)
         pm_ctrl.animType = animType;
         pm_ctrl.pageTop=NULL;
         pm_ctrl.pageWillDisappear=page;
+        isTop=true;
     }
     else
     {
@@ -653,6 +668,7 @@ page_err_t pm_stack_page_backstage(const char* name,pm_anim_style_t animType)
         {   
             pm_ctrl.animType = animType;
             pm_ctrl.pageTop=NULL;
+            isTop=true;
         }
         else
         {
@@ -694,7 +710,7 @@ page_err_t pm_stack_page_backstage(const char* name,pm_anim_style_t animType)
         needAnim=false;
         break;
     }
-    if (page->onDisappearing || needAnim)
+    if (isTop && (page->onDisappearing || needAnim))
     {
         return pm_change_status_to(PM_STATUS_ANIMATION_START);
     }

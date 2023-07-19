@@ -12,7 +12,7 @@ static void timer_cb(lv_timer_t* timer)
     // pm_stack_replace_page(name,PM_ANIM_PUSH_LEFT_TO_RIGHT);
     if (idx)
     {
-        pm_stack_page_backstage(NULL,PM_ANIM_OVER_BOTTOM_TO_TOP);
+        pm_stack_page_backstage(NULL,PM_ANIM_OVER_LEFT_TO_RIGHT);
     }
     else
     {
